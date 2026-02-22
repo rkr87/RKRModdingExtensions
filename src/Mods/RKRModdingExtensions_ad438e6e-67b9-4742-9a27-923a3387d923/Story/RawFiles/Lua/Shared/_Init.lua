@@ -1,2 +1,3 @@
-Ext.Require("Shared/Classes/ProbabilityPool.lua")
-Ext.Require("Shared/Utils/Timer.lua")
+Ext.Require("Shared/ProbabilityPool.lua")
+Ext.Require("Shared/Timer.lua")
+Ext.Require("Shared/Test.lua")

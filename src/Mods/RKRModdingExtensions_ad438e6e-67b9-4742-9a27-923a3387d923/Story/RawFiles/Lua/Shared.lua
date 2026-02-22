@@ -16,6 +16,7 @@ end
 if Rkr == nil then Rkr = {} end
 init_table({ "Rkr" })
 if Rkr.Constants == nil then Rkr.Constants = {} end
+if Rkr.Test == nil then Rkr.Test = {} end
 init_table({ "Constants", "Test" }, Rkr)
 
 

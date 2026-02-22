@@ -2,17 +2,17 @@
 ---@class list<T>
 ---@field private _data T[]
 ---@field private _size number
-local List = {}
-List.__index = List
+local list = {}
+list.__index = list
 
 ---@generic T
 ---@param t T[]|nil
 ---@return list<T>
-function List.new(t)
+function list.new(t)
     local self = setmetatable({
         _data = {},
         _size = 0
-    }, List)
+    }, list)
 
     if t then
         for _, v in ipairs(t) do
@@ -70,17 +70,17 @@ end
 
 ---@param key any
 ---@return any
-function List:__index(key)
+function list:__index(key)
     if type(key) == "number" then
         key = normalise_read(key, self._size)
         return self._data[key]
     end
-    return rawget(List, key)
+    return rawget(list, key)
 end
 
 ---@param index number
 ---@param value T
-function List:__newindex(index, value)
+function list:__newindex(index, value)
     index = normalise_write(index, self._size)
 
     if index == self._size then
@@ -93,22 +93,22 @@ function List:__newindex(index, value)
 end
 
 ---@return number
-function List:__len()
+function list:__len()
     return self._size
 end
 
 ---@param value T
-function List:append(value)
+function list:append(value)
     self._data[self._size] = value
     self._size = self._size + 1
 end
 
-List.add = List.append
-List.push = List.append
+list.add = list.append
+list.push = list.append
 
 ---@param index number
 ---@param value T
-function List:insert(index, value)
+function list:insert(index, value)
     is_int(index)
     index = clamp_slice_index(index, self._size)
     index = math.max(index, 0)
@@ -123,7 +123,7 @@ function List:insert(index, value)
 end
 
 ---@param other list<T>
-function List:extend(other)
+function list:extend(other)
     for i = 0, other._size - 1 do
         self:append(other._data[i])
     end
@@ -131,7 +131,7 @@ end
 
 ---@param index number|nil
 ---@return T
-function List:pop(index)
+function list:pop(index)
     if self._size == 0 then
         error("IndexError: pop from empty list")
     end
@@ -152,7 +152,7 @@ function List:pop(index)
 end
 
 ---@param value T
-function List:remove(value)
+function list:remove(value)
     for i = 0, self._size - 1 do
         if self._data[i] == value then
             self:pop(i)
@@ -162,7 +162,7 @@ function List:remove(value)
     error("ValueError: " .. tostring(value) .. " is not in list")
 end
 
-function List:clear()
+function list:clear()
     for i = 0, self._size - 1 do
         self._data[i] = nil
     end
@@ -170,15 +170,15 @@ function List:clear()
 end
 
 ---@return number
-function List:len()
+function list:len()
     return self._size
 end
 
-List.size = List.len
+list.size = list.len
 
 ---@generic T
 ---@return fun(): number, T
-function List:iter()
+function list:iter()
     local i = -1
     local n = self._size
     return function()
@@ -191,7 +191,7 @@ end
 
 ---@generic T
 ---@return fun(): T
-function List:values()
+function list:values()
     local i = -1
     local n = self._size
     return function()
@@ -202,18 +202,18 @@ function List:values()
     end
 end
 
-function List:__call()
+function list:__call()
     return self:values()
 end
 
 ---@generic T
 ---@return list<T>
-function List:copy()
+function list:copy()
     local t = {}
     for i = 0, self._size - 1 do
         t[i + 1] = self._data[i]
     end
-    return List.new(t)
+    return list.new(t)
 end
 
 ---@generic T
@@ -221,8 +221,8 @@ end
 ---@param stop number|nil
 ---@param step number|nil
 ---@return list<T>
-function List:slice(start, stop, step)
-    local result = List.new()
+function list:slice(start, stop, step)
+    local result = list.new()
     local n = self._size
 
     step = step or 1
@@ -262,7 +262,7 @@ function List:slice(start, stop, step)
     return result
 end
 
-function List:reverse()
+function list:reverse()
     local i, j = 0, self._size - 1
     while i < j do
         self._data[i], self._data[j] = self._data[j], self._data[i]
@@ -272,7 +272,7 @@ function List:reverse()
 end
 
 ---@param cmp? fun(a:T,b:T):boolean|nil
-function List:sort(cmp)
+function list:sort(cmp)
     cmp = cmp or function(a, b)
         return a < b
     end
@@ -393,7 +393,7 @@ end
 
 ---@param value T
 ---@return boolean
-function List:contains(value)
+function list:contains(value)
     for i = 0, self._size - 1 do
         if self._data[i] == value then
             return true
@@ -404,7 +404,7 @@ end
 
 ---@param value T
 ---@return number
-function List:count(value)
+function list:count(value)
     local c = 0
     for i = 0, self._size - 1 do
         if self._data[i] == value then
@@ -416,7 +416,7 @@ end
 
 ---@param value T
 ---@return number|nil
-function List:index(value)
+function list:index(value)
     for i = 0, self._size - 1 do
         if self._data[i] == value then
             return i
@@ -427,8 +427,8 @@ end
 
 ---@param value T
 ---@return list<number>
-function List:index_all(value)
-    local result = List.new()
+function list:index_all(value)
+    local result = list.new()
     for i = 0, self._size - 1 do
         if self._data[i] == value then
             result:append(i)
@@ -441,8 +441,8 @@ function List:index_all(value)
 end
 
 ---@param other list<T>
-function List:__eq(other)
-    if getmetatable(other) ~= List then
+function list:__eq(other)
+    if getmetatable(other) ~= list then
         return false
     end
 
@@ -460,7 +460,7 @@ function List:__eq(other)
 end
 
 ---@return string
-function List:__tostring()
+function list:__tostring()
     local parts = {}
     for i = 0, self._size - 1 do
         parts[i + 1] = tostring(self._data[i])
@@ -471,12 +471,12 @@ end
 ---@generic T
 ---@param obj? list<T> | nil | table | fun(): T
 ---@return list<T>
-local function list(obj)
+function list.list(obj)
     if obj == nil then
-        return List.new()
+        return list.new()
     end
 
-    if getmetatable(obj) == List then
+    if getmetatable(obj) == list then
         return obj:copy()
     end
 
@@ -498,8 +498,20 @@ local function list(obj)
         error("TypeError: Rkr.list() expects table, iterable, or List")
     end
 
-    return List.new(t)
+    return list.new(t)
 end
 
-Rkr.List = List.new
-Rkr.list = list
+---@class List
+---@overload fun<T>(t: T[]?): list<T>
+local List = {}
+List.__index = List
+
+---@diagnostic disable-next-line: param-type-mismatch
+setmetatable(List, {
+    __call = function(_, t)
+        return list.new(t)
+    end
+})
+
+Rkr.List = List
+Rkr.list = list.list

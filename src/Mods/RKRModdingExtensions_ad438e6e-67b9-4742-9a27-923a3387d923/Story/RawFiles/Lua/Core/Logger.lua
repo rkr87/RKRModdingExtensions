@@ -13,16 +13,16 @@ local LEVEL_COLOURS = {
     ERROR = Rkr.Constants.ANSI_COLOURS.RED,
 }
 
----@class Logger
+---@class logger
 ---@field name string The name of the application (e.g., "AETPatch")
 ---@field level number The current logging threshold
 ---@field verbose boolean Whether metadata should be shown
 ---@field context string? The specific file or module context
 ---@field Level table<string, number> Reference to the enum
----@field log Logger Reference to logger intance for internal logging
-local Logger = {}
-Logger.__index = Logger
-Logger.Level = LOG_LEVEL
+---@field log logger Reference to logger intance for internal logging
+local logger = {}
+logger.__index = logger
+logger.Level = LOG_LEVEL
 
 local fallback_name = "RkrModdingExtensions"
 
@@ -30,12 +30,12 @@ local fallback_name = "RkrModdingExtensions"
 ---@param app_name string? Defaults to "LuaApp"
 ---@param initial_level string?
 ---@param verbose boolean? Defaults to false
----@return Logger
-function Logger.new(app_name, initial_level, verbose)
-    local self = setmetatable({}, Logger)
+---@return logger
+function logger.new(app_name, initial_level, verbose)
+    local self = setmetatable({}, logger)
     initial_level = initial_level or "INFO"
     self.name = app_name or fallback_name
-    self.level = Logger.Level[initial_level]
+    self.level = logger.Level[initial_level]
     self.verbose = verbose or false
     self.context = nil
     self.log = self:with_context("Logger")
@@ -48,20 +48,20 @@ function Logger.new(app_name, initial_level, verbose)
 end
 
 -- Allow Logger("AppName", level, verbose) syntax for instantiation
-setmetatable(Logger, {
+setmetatable(logger, {
     ---@param app_name string?
     ---@param initial_level string?
     ---@param verbose boolean?
-    ---@return Logger
+    ---@return logger
     __call = function(_, app_name, initial_level, verbose)
-        return Logger.new(app_name, initial_level, verbose)
+        return logger.new(app_name, initial_level, verbose)
     end
 })
 
 --- Creates a lightweight proxy for a specific file/context.
 ---@param context string e.g. "StatusManager"
----@return Logger
-function Logger:with_context(context)
+---@return logger
+function logger:with_context(context)
     local proxy = setmetatable({
         context = context
     }, {
@@ -75,8 +75,8 @@ end
 
 --- Creates a new logger with extended context.
 ---@param extra string
----@return Logger
-function Logger:extend_context(extra)
+---@return logger
+function logger:extend_context(extra)
     local new_context
 
     if self.context then
@@ -92,8 +92,8 @@ end
 ---@param fmt string
 ---@param ... any
 ---@private
-function Logger:_write(level_name, fmt, ...)
-    local priority = Logger.Level[level_name]
+function logger:_write(level_name, fmt, ...)
+    local priority = logger.Level[level_name]
 
     if not priority then
         self.log:extend_context("_write")
@@ -130,24 +130,24 @@ end
 
 ---@param fmt string
 ---@param ... any
-function Logger:debug(fmt, ...) self:_write("DEBUG", fmt, ...) end
+function logger:debug(fmt, ...) self:_write("DEBUG", fmt, ...) end
 
 ---@param fmt string
 ---@param ... any
-function Logger:info(fmt, ...) self:_write("INFO", fmt, ...) end
+function logger:info(fmt, ...) self:_write("INFO", fmt, ...) end
 
 ---@param fmt string
 ---@param ... any
-function Logger:warn(fmt, ...) self:_write("WARN", fmt, ...) end
+function logger:warn(fmt, ...) self:_write("WARN", fmt, ...) end
 
 ---@param fmt string
 ---@param ... any
-function Logger:error(fmt, ...) self:_write("ERROR", fmt, ...) end
+function logger:error(fmt, ...) self:_write("ERROR", fmt, ...) end
 
 --- Changes the logging threshold for the main instance and all proxies
 ---@param level_name string
-function Logger:set_level(level_name)
-    local val = Logger.Level[tostring(level_name):upper()]
+function logger:set_level(level_name)
+    local val = logger.Level[tostring(level_name):upper()]
 
     if val then
         self.log:extend_context("set_level")
@@ -161,11 +161,16 @@ end
 
 --- Toggles context metadata visibility
 ---@param state boolean
-function Logger:set_verbose(state)
+function logger:set_verbose(state)
     self.verbose = state
     self.log:extend_context("set_verbose")
         :info("Verbose mode set to %s", tostring(state))
 end
+
+---@class Logger
+---@overload fun(app_name: string?, initial_level: string?, verbose: boolean?): logger
+local Logger = {}
+Logger.__index = Logger
 
 --- Static logging: write without creating a Logger instance
 ---@param set_level string
@@ -173,9 +178,9 @@ end
 ---@param context string? Optional module/file context
 ---@param fmt string
 ---@param ... any
-function Logger.log_static(set_level, set_verbose, level_name, context, fmt, ...)
-    local set_priority = Logger.Level[set_level]
-    local priority = Logger.Level[level_name]
+function Logger.log(set_level, set_verbose, level_name, context, fmt, ...)
+    local set_priority = logger.Level[set_level]
+    local priority = logger.Level[level_name]
 
     local name_block = fallback_name
     if context and set_verbose then
@@ -201,5 +206,12 @@ function Logger.log_static(set_level, set_verbose, level_name, context, fmt, ...
     local message = (select('#', ...) > 0) and string.format(fmt, ...) or tostring(fmt)
     print(prefix .. " " .. message)
 end
+
+---@diagnostic disable-next-line: param-type-mismatch
+setmetatable(Logger, {
+    __call = function(_, ...)
+        return logger.new(...)
+    end
+})
 
 Rkr.Logger = Logger
