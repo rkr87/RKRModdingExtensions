@@ -3,8 +3,6 @@
 local log = RkrModdingExtensions.log:with_context("Timer")
 
 ---@class Timer
----@field on_wait_ticks fun(ticks:number, callback:fun()):nil
----@field create_throttle fun(seconds:number, name:string):fun():boolean
 local Timer = {}
 Timer.__index = Timer
 

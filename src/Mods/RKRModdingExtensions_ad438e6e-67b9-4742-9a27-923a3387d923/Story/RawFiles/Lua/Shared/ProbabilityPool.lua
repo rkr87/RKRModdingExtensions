@@ -52,7 +52,7 @@ end
 ---@param custom_distribution table<string, number>?
 ---@return pool<T>
 function pool.new(item_map, custom_distribution)
-    log:info("Creating ProbabilityPool with %d tiers",
+    log:debug("Creating ProbabilityPool with %d tiers",
         (function()
             local c = 0; for _ in pairs(item_map or {}) do c = c + 1 end; return c
         end)())

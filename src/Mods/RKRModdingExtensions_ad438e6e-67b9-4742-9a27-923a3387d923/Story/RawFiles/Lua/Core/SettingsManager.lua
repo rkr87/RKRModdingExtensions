@@ -67,7 +67,7 @@ function settings:_load_file(mod_name)
 
     local text = Ext.IO.LoadFile(path)
     if not text then
-        log:warn("No settings file found")
+        log:warn("No settings file found at %s", path)
         return
     end
 
