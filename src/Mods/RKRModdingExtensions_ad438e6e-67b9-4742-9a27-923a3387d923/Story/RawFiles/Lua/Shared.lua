@@ -19,6 +19,19 @@ if Rkr.Constants == nil then Rkr.Constants = {} end
 if Rkr.Test == nil then Rkr.Test = {} end
 init_table({ "Constants", "Test" }, Rkr)
 
+---@generic T
+---@param class table
+---@param constructor fun(...): T
+local function make_callable(class, constructor)
+    class.__index = class
+    setmetatable(class, {
+        __call = function(_, ...)
+            return constructor(...)
+        end
+    })
+end
+
+RkrModdingExtensions.make_callable = make_callable
 
 Ext.Require("Builtin/_Init.lua")
 Ext.Require("Core/_Init.lua")

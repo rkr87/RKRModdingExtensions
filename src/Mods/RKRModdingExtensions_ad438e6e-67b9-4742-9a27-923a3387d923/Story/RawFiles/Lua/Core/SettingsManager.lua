@@ -206,7 +206,7 @@ end
 
 
 ---@param mod_name string
----@param defaults dict<string, any>
+---@param defaults? dict<string, any>|nil
 ---@return ModSettingsView
 function settings:bind_mod(mod_name, defaults)
     local log = self._log:extend_context(mod_name)
@@ -220,9 +220,7 @@ function settings:bind_mod(mod_name, defaults)
 end
 
 ---@class SettingsManager
----@overload fun(): settings
 local SettingsManager = {}
-SettingsManager.__index = SettingsManager
 
 ---@param name string
 ---@return dict<string, any> | nil
@@ -274,11 +272,6 @@ function SettingsManager.get_mod(mod_name)
     return result
 end
 
----@diagnostic disable-next-line: param-type-mismatch
-setmetatable(SettingsManager, {
-    __call = function(_)
-        return settings.new()
-    end
-})
-
-return SettingsManager
+RkrModdingExtensions.make_callable(SettingsManager, settings.new)
+---@overload fun(): settings
+RkrModdingExtensions.SettingsManager = SettingsManager

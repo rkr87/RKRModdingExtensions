@@ -216,52 +216,28 @@ function dict:__tostring()
     return "{" .. table.concat(parts, ", ") .. "}"
 end
 
----@generic K, V
----@param iterable table|fun(): V
----@param value? V|nil
----@return dict<K, V>
-function dict.fromkeys(iterable, value)
-    local self = dict.new()
-    value = value
-
-    if iterable == nil then
-        return self
-    end
-
-    if type(iterable) == "function" then
-        while true do
-            local v = iterable()
-            if v == nil then
-                break
-            end
-
-            if self[v] == nil then
-                self._size = self._size + 1
-            end
-            self[v] = value
-        end
-    elseif type(iterable) == "table" then
-        for _, v in ipairs(iterable) do
-            if self[v] == nil then
-                self._size = self._size + 1
-            end
-            self[v] = value
-        end
-    end
-
-    return self
-end
-
 ---@class Dict
----@overload fun<K, V>(t: table<K, V>?): dict<K, V>
 local Dict = {}
 Dict.__index = Dict
 
----@diagnostic disable-next-line: param-type-mismatch
-setmetatable(Dict, {
-    __call = function(_, t)
-        return dict.new(t)
+---@generic K, V
+---@param iterable K[]|fun(): K
+---@param value? V|nil
+---@return dict<K, V>
+function Dict.fromkeys(iterable, value)
+    local this = dict.new()
+    if type(iterable) == "function" then
+        for k in iterable do
+            this:set(k, value)
+        end
+    elseif type(iterable) == "table" then
+        for _, k in ipairs(iterable) do
+            this:set(k, value)
+        end
     end
-})
+    return this
+end
 
+RkrModdingExtensions.make_callable(Dict, dict.new)
+---@overload fun<K, V>(t: table<K, V>?): dict<K, V>
 Rkr.Dict = Dict

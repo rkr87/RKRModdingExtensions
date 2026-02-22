@@ -468,10 +468,13 @@ function list:__tostring()
     return "[" .. table.concat(parts, ", ") .. "]"
 end
 
+---@class List
+local List = {}
+
 ---@generic T
 ---@param obj? list<T> | nil | table | fun(): T
 ---@return list<T>
-function list.list(obj)
+function List.list(obj)
     if obj == nil then
         return list.new()
     end
@@ -501,17 +504,7 @@ function list.list(obj)
     return list.new(t)
 end
 
----@class List
+RkrModdingExtensions.make_callable(List, list.new)
 ---@overload fun<T>(t: T[]?): list<T>
-local List = {}
-List.__index = List
-
----@diagnostic disable-next-line: param-type-mismatch
-setmetatable(List, {
-    __call = function(_, t)
-        return list.new(t)
-    end
-})
-
 Rkr.List = List
-Rkr.list = list.list
+Rkr.list = List.list

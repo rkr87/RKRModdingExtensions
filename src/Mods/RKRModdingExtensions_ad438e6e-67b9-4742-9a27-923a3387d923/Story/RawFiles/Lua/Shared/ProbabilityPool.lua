@@ -6,18 +6,8 @@ local log = RkrModdingExtensions.log:with_context("ProbabilityPool")
 local pool = {}
 pool.__index = pool
 
-
 ---@class ProbabilityPool<T>
----@overload fun(item_map: dict<string, list<T>>, custom_distribution: dict<string, number>): pool
 local ProbabilityPool = {}
-ProbabilityPool.__index = ProbabilityPool
-
----@diagnostic disable-next-line: param-type-mismatch
-setmetatable(ProbabilityPool, {
-    __call = function(_, ...)
-        return pool.new(...)
-    end
-})
 
 ProbabilityPool.Tier = {
     COMMON = "COMMON",
@@ -147,4 +137,6 @@ function pool:get_pool()
     return self._tiers
 end
 
+RkrModdingExtensions.make_callable(ProbabilityPool, pool.new)
+---@overload fun<T>(item_map: dict<string, list<T>>, custom_distribution: dict<string, number>): pool
 Rkr.ProbabilityPool = ProbabilityPool

@@ -168,9 +168,7 @@ function logger:set_verbose(state)
 end
 
 ---@class Logger
----@overload fun(app_name: string?, initial_level: string?, verbose: boolean?): logger
 local Logger = {}
-Logger.__index = Logger
 
 --- Static logging: write without creating a Logger instance
 ---@param set_level string
@@ -207,11 +205,6 @@ function Logger.log(set_level, set_verbose, level_name, context, fmt, ...)
     print(prefix .. " " .. message)
 end
 
----@diagnostic disable-next-line: param-type-mismatch
-setmetatable(Logger, {
-    __call = function(_, ...)
-        return logger.new(...)
-    end
-})
-
+RkrModdingExtensions.make_callable(Logger, logger.new)
+---@overload fun(app_name: string?, initial_level: string?, verbose: boolean?): logger
 Rkr.Logger = Logger
