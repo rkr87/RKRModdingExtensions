@@ -25,7 +25,7 @@ function list.new(t)
 end
 
 ---@param index number
-local function is_int(index)
+local function valid_index(index)
     if type(index) ~= "number" then
         error("NameError: name '" .. index .. ' is not defined')
     elseif index ~= math.floor(index) then
@@ -35,36 +35,33 @@ end
 
 ---@param index number
 ---@param size number
+---@param inclusive? boolean | nil
 ---@return number
-local function clamp_slice_index(index, size)
+local function clamp_index(index, size, inclusive)
+    inclusive = inclusive or false
     if index < 0 then
         index = size + index
     end
-    return index
+    if inclusive then size = size + 1 end
+    return math.max(math.min(size + 1, index), 0)
 end
 
 ---@param index number
 ---@param size number
-local function index_bounds(index, size)
+---@return number
+local function normalise_inclusive(index, size)
+    valid_index(index)
+    return clamp_index(index, size)
+end
+
+---@param index number
+---@param size number
+---@return number
+local function normalise(index, size)
+    index = normalise_inclusive(index, size)
     if index < 0 or index >= size then
         error("IndexError: list index out of range")
     end
-end
-
----@param index number
----@param size number
----@return number
-local function normalise_write(index, size)
-    is_int(index)
-    return clamp_slice_index(index, size)
-end
-
----@param index number
----@param size number
----@return number
-local function normalise_read(index, size)
-    index = normalise_write(index, size)
-    index_bounds(index, size)
     return index
 end
 
@@ -72,23 +69,27 @@ end
 ---@return any
 function list:__index(key)
     if type(key) == "number" then
-        key = normalise_read(key, self._size)
+        key = normalise(key, self._size)
         return self._data[key]
     end
-    return rawget(list, key)
+    local class_value = rawget(list, key)
+    if class_value == nil then
+        error("NameError: name '" .. key .. ' is not defined')
+    end
+    return class_value
 end
 
 ---@param index number
 ---@param value T
 function list:__newindex(index, value)
-    index = normalise_write(index, self._size)
+    index = normalise_inclusive(index, self._size)
 
     if index == self._size then
         self._data[self._size] = value
         self._size = self._size + 1
         return
     end
-    index_bounds(index, self._size)
+    normalise(index, self._size)
     self._data[index] = value
 end
 
@@ -109,8 +110,8 @@ list.push = list.append
 ---@param index number
 ---@param value T
 function list:insert(index, value)
-    is_int(index)
-    index = clamp_slice_index(index, self._size)
+    valid_index(index)
+    index = normalise_inclusive(index, self._size)
     index = math.max(index, 0)
     index = math.min(index, self._size)
 
@@ -137,7 +138,7 @@ function list:pop(index)
     end
 
     index = index or self._size - 1
-    index = normalise_read(index, self._size)
+    index = normalise(index, self._size)
 
     local value = self._data[index]
 
@@ -177,7 +178,7 @@ end
 list.size = list.len
 
 ---@generic T
----@return fun(): number, T
+---@return fun(): list<number| T>
 function list:iter()
     local i = 0
     local n = self._size
@@ -257,14 +258,14 @@ function list:slice(start, stop, step)
     end
 
     if step > 0 then
-        start = clamp_slice_index(start or 0, n)
-        stop = clamp_slice_index(stop or n, n)
+        start = clamp_index(start or 0, n)
+        stop = clamp_index(stop or n, n)
     else
-        start = clamp_slice_index(start or n, n)
+        start = clamp_index(start or n, n)
         if stop == nil then
             stop = -1
         else
-            stop = clamp_slice_index(stop, n)
+            stop = clamp_index(stop, n)
         end
     end
 
@@ -297,12 +298,15 @@ function list:reverse()
     end
 end
 
+---@generic T
 ---@param cmp? fun(a:T,b:T):boolean|nil
 function list:sort(cmp)
     cmp = cmp or function(a, b)
         return a < b
     end
-
+    if type(cmp) ~= "function" then
+        error("TypeError: comparator must be a function")
+    end
     local threshold = 16
 
     local function insertion_sort(left, right)

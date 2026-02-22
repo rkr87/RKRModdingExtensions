@@ -392,3 +392,5 @@ describe("List", function()
         end)
     end)
 end)
+
+Rkr.Test.summary()
