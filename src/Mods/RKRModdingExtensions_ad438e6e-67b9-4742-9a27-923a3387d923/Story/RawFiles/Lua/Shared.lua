@@ -36,4 +36,7 @@ RkrModdingExtensions.make_callable = make_callable
 Ext.Require("Builtin/_Init.lua")
 Ext.Require("Core/_Init.lua")
 Ext.Require("Shared/_Init.lua")
+
+if not RkrModdingExtensions.Settings.run_tests then return end
+Rkr.Test.initialise(RkrModdingExtensions.ModName)
 Ext.Require("Tests/_Init.lua")
