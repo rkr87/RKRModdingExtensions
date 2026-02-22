@@ -6,6 +6,12 @@ local function test_construction()
         List(),
         function() return List() end
     )
+
+    Rkr.Test.assert_test(
+        "List.list({ 1, 2, 3 })",
+        List({ 1, 2, 3 }),
+        function() return List.list({ 1, 2, 3 }) end
+    )
 end
 
 local function test_indexing()

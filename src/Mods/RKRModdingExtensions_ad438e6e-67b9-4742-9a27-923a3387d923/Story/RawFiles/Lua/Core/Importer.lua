@@ -1,7 +1,24 @@
 local m_log = RkrModdingExtensions.log:with_context("Importer")
-SharedVars = {}
+local SharedVars = Rkr.Dict({})
 
-Importer = {
+local PrivateKeys = Rkr.Dict({
+    ModuleUUID = true,
+    PersistentVars = true,
+    LoadPersistentVars = true,
+    Debug = true,
+    Vars = true,
+    Listeners = true,
+    SkillListeners = true,
+    ModListeners = true,
+    Settings = true,
+    Importer = true,
+    ImportUnsafe = true,
+    Import = true,
+    CustomSkillProperties = true,
+    _PV = true,
+})
+
+local Importer = {
     setup_shared_vars = function(targetMod)
         local meta = {}
         if targetMod.Vars ~= nil and getmetatable(targetMod.Vars) then
@@ -28,29 +45,12 @@ Importer = {
         setmetatable(targetMod.Vars, meta)
     end,
 
-    PrivateKeys = {
-        ModuleUUID = true,
-        PersistentVars = true,
-        LoadPersistentVars = true,
-        Debug = true,
-        Vars = true,
-        Listeners = true,
-        SkillListeners = true,
-        ModListeners = true,
-        Settings = true,
-        Importer = true,
-        ImportUnsafe = true,
-        Import = true,
-        CustomSkillProperties = true,
-        _PV = true,
-    },
-
     get_indexer = function(originalGetIndex)
         local get_index = function(tbl, k)
             if k == "RKRModdingExtensions" then
                 return Mods.RKRModdingExtensions
             end
-            if not Importer.PrivateKeys[k] then
+            if not PrivateKeys[k] then
                 if Mods.RKRModdingExtensions[k] ~= nil then
                     return Mods.RKRModdingExtensions[k]
                 end

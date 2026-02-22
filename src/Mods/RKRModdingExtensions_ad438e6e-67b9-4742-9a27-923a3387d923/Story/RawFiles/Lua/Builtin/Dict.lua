@@ -2,14 +2,14 @@
 ---@class dict<K, V> : table
 ---@field private _size number
 ---@field [K] V
-local Dict = {}
-Dict.__index = Dict
+local dict = {}
+dict.__index = dict
 
 ---@generic K, V
 ---@param t table<K, V>|nil
 ---@return dict<K, V>
-function Dict.new(t)
-    local self = setmetatable({}, Dict)
+function dict.new(t)
+    local self = setmetatable({}, dict)
     self._size = 0
 
     if t then
@@ -25,21 +25,21 @@ end
 ---@generic K, V
 ---@param key K
 ---@param value V
-function Dict:set(key, value)
+function dict:set(key, value)
     if self[key] == nil then
         self._size = self._size + 1
     end
     self[key] = value
 end
 
-Dict.put = Dict.set
-Dict.add = Dict.set
+dict.put = dict.set
+dict.add = dict.set
 
 ---@generic K, V
 ---@param key K
 ---@param default V|nil
 ---@return V|nil
-function Dict:get(key, default)
+function dict:get(key, default)
     local value = self[key]
     if value == nil then
         return default
@@ -51,7 +51,7 @@ end
 ---@param key K
 ---@param default V|nil
 ---@return V|nil
-function Dict:pop(key, default)
+function dict:pop(key, default)
     local value = self[key]
 
     if value == nil then
@@ -68,7 +68,7 @@ end
 
 ---@generic K, V
 ---@return K|nil, V|nil
-function Dict:popitem()
+function dict:popitem()
     for k, v in pairs(self) do
         self[k] = nil
         self._size = self._size - 1
@@ -79,18 +79,18 @@ end
 ---@generic K
 ---@param key K
 ---@return boolean
-function Dict:contains(key)
+function dict:contains(key)
     return self[key] ~= nil
 end
 
 ---@return number
-function Dict:len()
+function dict:len()
     return self._size
 end
 
-Dict.size = Dict.len
+dict.size = dict.len
 
-function Dict:clear()
+function dict:clear()
     for k in pairs(self) do
         self[k] = nil
     end
@@ -99,7 +99,7 @@ end
 
 ---@generic K, V
 ---@param other table<K, V>|dict<K, V>
-function Dict:update(other)
+function dict:update(other)
     for k, v in pairs(other) do
         if self[k] == nil then
             self._size = self._size + 1
@@ -112,7 +112,7 @@ end
 ---@param key K
 ---@param default V
 ---@return V
-function Dict:setdefault(key, default)
+function dict:setdefault(key, default)
     if self[key] == nil then
         self[key] = default
         self._size = self._size + 1
@@ -122,7 +122,7 @@ end
 
 ---@generic K
 ---@return fun(): K
-function Dict:keys()
+function dict:keys()
     local iter, tbl, key = pairs(self)
     return function()
         key = iter(tbl, key)
@@ -132,7 +132,7 @@ end
 
 ---@generic K, V
 ---@return fun(): V
-function Dict:values()
+function dict:values()
     local iter, tbl, key = pairs(self)
     return function()
         key = iter(tbl, key)
@@ -144,7 +144,7 @@ end
 
 ---@generic K, V
 ---@return fun(): K, V
-function Dict:items()
+function dict:items()
     local iter, tbl, key = pairs(self)
     return function()
         key = iter(tbl, key)
@@ -156,14 +156,14 @@ end
 
 ---@generic K, V
 ---@return fun(): K, V
-function Dict:__call()
+function dict:__call()
     return self:keys()
 end
 
 ---@generic K, V
 ---@return dict<K, V>
-function Dict:copy()
-    local new = Dict.new()
+function dict:copy()
+    local new = dict.new()
     for k, v in pairs(self) do
         new[k] = v
     end
@@ -172,13 +172,13 @@ function Dict:copy()
 end
 
 ---@return number
-function Dict:__len()
+function dict:__len()
     return self._size
 end
 
 ---@param other dict
 ---@return boolean
-function Dict:__eq(other)
+function dict:__eq(other)
     if self._size ~= other._size then
         return false
     end
@@ -192,7 +192,7 @@ function Dict:__eq(other)
     return true
 end
 
-function Dict:__pairs()
+function dict:__pairs()
     local function iter(tbl, k)
         local next_k, next_v = next(tbl, k)
         if next_k == "_size" then
@@ -205,7 +205,7 @@ function Dict:__pairs()
 end
 
 ---@return string
-function Dict:__tostring()
+function dict:__tostring()
     local parts = {}
 
     for k, v in pairs(self) do
@@ -216,46 +216,28 @@ function Dict:__tostring()
     return "{" .. table.concat(parts, ", ") .. "}"
 end
 
+---@class Dict
+local Dict = {}
+Dict.__index = Dict
+
 ---@generic K, V
----@param iterable table|fun(): V
+---@param iterable K[]|fun(): K
 ---@param value? V|nil
 ---@return dict<K, V>
 function Dict.fromkeys(iterable, value)
-    local self = Dict.new()
-    value = value
-
-    if iterable == nil then
-        return self
-    end
-
+    local this = dict.new()
     if type(iterable) == "function" then
-        while true do
-            local v = iterable()
-            if v == nil then
-                break
-            end
-
-            if self[v] == nil then
-                self._size = self._size + 1
-            end
-            self[v] = value
+        for k in iterable do
+            this:set(k, value)
         end
     elseif type(iterable) == "table" then
-        for _, v in ipairs(iterable) do
-            if self[v] == nil then
-                self._size = self._size + 1
-            end
-            self[v] = value
+        for _, k in ipairs(iterable) do
+            this:set(k, value)
         end
     end
-
-    return self
+    return this
 end
 
-setmetatable(Dict, {
-    __call = function(_, ...)
-        return Dict.new(...)
-    end
-})
-
+RkrModdingExtensions.make_callable(Dict, dict.new)
+---@overload fun<K, V>(t: table<K, V>?): dict<K, V>
 Rkr.Dict = Dict
