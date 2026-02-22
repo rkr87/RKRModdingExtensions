@@ -57,10 +57,6 @@ function settings:save_mod(mod_name)
     Ext.IO.SaveFile(path, Ext.Json.Stringify(self:get_mod(mod_name)))
 end
 
--- =========================
--- Internal helpers
--- =========================
-
 ---Load a JSON file for a mod.
 ---@private
 ---@return dict<string, any> | nil
@@ -109,7 +105,7 @@ function settings:_load_mod(mod_name, defaults)
 
         self._mods[mod_name] = data
 
-        if saved_settings ~= data then
+        if saved_settings ~= data and data:size() > 0 then
             log:info("Updating saved settings '%s'", mod_name)
             self:save_mod(mod_name)
         end
@@ -120,14 +116,14 @@ function settings:_load_mod(mod_name, defaults)
     return self._mods[mod_name]
 end
 
--- =========================
--- Per-mod proxy class
--- =========================
-
 ---@class ModSettingsView
 ---@field private _manager settings
 ---@field private _mod_name string
 ---@field private _log logger
+---@field log_level string
+---@field log_verbose boolean
+---@field run_tests boolean
+---@field [string] any
 local ModSettingsView = {}
 ModSettingsView.__index = ModSettingsView
 
@@ -199,11 +195,6 @@ function ModSettingsView:__newindex(k, v)
     self._manager:get_mod(self._mod_name)[k] = v
     self:_save()
 end
-
--- =========================
--- SettingsManager API
--- =========================
-
 
 ---@param mod_name string
 ---@param defaults? dict<string, any>|nil
