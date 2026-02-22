@@ -1,10 +1,10 @@
----@class SettingsManager
+---@class settings
 ---@field private _base_path string
 ---@field private _global dict<string, any>
 ---@field private _mods table<string, dict<string, any>>
----@field private _log Logger
-local SettingsManager = {}
-SettingsManager.__index = SettingsManager
+---@field private _log logger
+local settings = {}
+settings.__index = settings
 
 ---@type dict<string, any>
 local GLOBAL_DEFAULTS = Rkr.Dict({
@@ -14,9 +14,9 @@ local GLOBAL_DEFAULTS = Rkr.Dict({
 })
 local base_path = "Rkr/Settings"
 ---Create the central settings manager.
----@return SettingsManager
-function SettingsManager.new()
-    local self = setmetatable({}, SettingsManager)
+---@return settings
+function settings.new()
+    local self = setmetatable({}, settings)
     self._log = RkrModdingExtensions.log:with_context("SettingsManager")
     self._log:info("Initialising SettingsManager")
     self._base_path = base_path
@@ -29,14 +29,14 @@ end
 
 ---Get the global settings table.
 ---@return dict<string, any>
-function SettingsManager:get_global()
+function settings:get_global()
     return self._global
 end
 
 ---Get a mod's settings table (lazy-loaded).
 ---@param mod_name string?
 ---@return dict<string, any>
-function SettingsManager:get_mod(mod_name)
+function settings:get_mod(mod_name)
     if mod_name then
         if not self._mods[mod_name] then
             self:_load_mod(mod_name)
@@ -51,27 +51,23 @@ end
 
 ---Persist a mod's settings to disk.
 ---@param mod_name string
-function SettingsManager:save_mod(mod_name)
+function settings:save_mod(mod_name)
     local path = self._base_path .. "/" .. mod_name .. ".json"
     self._log:info("Saving settings for mod '%s' -> %s", mod_name, path)
     Ext.IO.SaveFile(path, Ext.Json.Stringify(self:get_mod(mod_name)))
 end
 
--- =========================
--- Internal helpers
--- =========================
-
 ---Load a JSON file for a mod.
 ---@private
 ---@return dict<string, any> | nil
-function SettingsManager:_load_file(mod_name)
+function settings:_load_file(mod_name)
     local log = self._log:extend_context(mod_name)
     local path = self._base_path .. "/" .. mod_name .. ".json"
     log:debug("Loading mod settings file")
 
     local text = Ext.IO.LoadFile(path)
     if not text then
-        log:warn("No settings file found")
+        log:warn("No settings file found at %s", path)
         return
     end
 
@@ -90,7 +86,7 @@ end
 ---@param mod_name string
 ---@param defaults? dict<string, any> | nil
 ---@return dict<string, any>
-function SettingsManager:_load_mod(mod_name, defaults)
+function settings:_load_mod(mod_name, defaults)
     local log = self._log:extend_context(mod_name)
     if not self._mods[mod_name] then
         log:info("Loading mod settings '%s'", mod_name)
@@ -109,7 +105,7 @@ function SettingsManager:_load_mod(mod_name, defaults)
 
         self._mods[mod_name] = data
 
-        if saved_settings ~= data then
+        if saved_settings ~= data and data:size() > 0 then
             log:info("Updating saved settings '%s'", mod_name)
             self:save_mod(mod_name)
         end
@@ -120,14 +116,14 @@ function SettingsManager:_load_mod(mod_name, defaults)
     return self._mods[mod_name]
 end
 
--- =========================
--- Per-mod proxy class
--- =========================
-
 ---@class ModSettingsView
----@field private _manager SettingsManager
+---@field private _manager settings
 ---@field private _mod_name string
----@field private _log Logger
+---@field private _log logger
+---@field log_level string
+---@field log_verbose boolean
+---@field run_tests boolean
+---@field [string] any
 local ModSettingsView = {}
 ModSettingsView.__index = ModSettingsView
 
@@ -200,15 +196,10 @@ function ModSettingsView:__newindex(k, v)
     self:_save()
 end
 
--- =========================
--- SettingsManager API
--- =========================
-
-
 ---@param mod_name string
----@param defaults dict<string, any>
+---@param defaults? dict<string, any>|nil
 ---@return ModSettingsView
-function SettingsManager:bind_mod(mod_name, defaults)
+function settings:bind_mod(mod_name, defaults)
     local log = self._log:extend_context(mod_name)
     log:info("Binding mod '%s'", mod_name)
     self:_load_mod(mod_name, defaults)
@@ -219,18 +210,20 @@ function SettingsManager:bind_mod(mod_name, defaults)
     return proxy
 end
 
+---@class SettingsManager
+local SettingsManager = {}
+
 ---@param name string
 ---@return dict<string, any> | nil
-local function static_load_file(name)
+---@private
+local function _static_load_file(name)
     local path = base_path .. "/" .. name .. ".json"
     local text = Ext.IO.LoadFile(path)
-    if not text then
-        return nil
-    end
+    if not text then return nil end
 
     local decoded = Ext.Json.Parse(text)
     if type(decoded) ~= "table" then
-        Rkr.Logger.log_static("ERROR", "ERROR", "SettingsManager",
+        Rkr.Logger.log("ERROR", "ERROR", "SettingsManager",
             "Invalid JSON in %s", path
         )
         return nil
@@ -242,32 +235,34 @@ end
 ---Priority: mod.json → global.json → hard defaults
 ---@param mod_name string
 ---@return dict<string, any>
-function SettingsManager.static_get_mod(mod_name)
-    local mod = static_load_file(mod_name)
-    local global = static_load_file("global")
+function SettingsManager.get_mod(mod_name)
+    local mod = _static_load_file(mod_name)
+    local global = _static_load_file("global")
     local log_level = (mod and mod.log_level) or (global and global.log_level) or GLOBAL_DEFAULTS.log_level
     local log_verbose = (mod and mod.log_verbose) or (global and global.log_verbose) or GLOBAL_DEFAULTS.log_verbose
-    Rkr.Logger.log_static(log_level, log_verbose, "INFO", "SettingsManager",
+    Rkr.Logger.log(log_level, log_verbose, "INFO", "SettingsManager",
         "Loading global settings for mod '%s'", mod_name)
     local result = GLOBAL_DEFAULTS:copy()
 
-    Rkr.Logger.log_static(log_level, log_verbose, "DEBUG", "SettingsManager",
+    Rkr.Logger.log(log_level, log_verbose, "DEBUG", "SettingsManager",
         "Applied %d hard default settings", result:size())
 
     if global then
         result:update(global)
-        Rkr.Logger.log_static(log_level, log_verbose, "DEBUG", "SettingsManager",
+        Rkr.Logger.log(log_level, log_verbose, "DEBUG", "SettingsManager",
             "Merged %d keys from global.json", global:size())
     end
     if mod then
         result:update(mod)
-        Rkr.Logger.log_static(log_level, log_verbose, "DEBUG", "SettingsManager",
+        Rkr.Logger.log(log_level, log_verbose, "DEBUG", "SettingsManager",
             "Merged %d keys from %s.json", mod:size(), mod_name)
     end
 
-    Rkr.Logger.log_static(log_level, log_verbose, "INFO", "SettingsManager",
+    Rkr.Logger.log(log_level, log_verbose, "INFO", "SettingsManager",
         "Resolved global settings for '%s'", mod_name)
     return result
 end
 
-return SettingsManager
+RkrModdingExtensions.make_callable(SettingsManager, settings.new)
+---@overload fun(): settings
+RkrModdingExtensions.SettingsManager = SettingsManager

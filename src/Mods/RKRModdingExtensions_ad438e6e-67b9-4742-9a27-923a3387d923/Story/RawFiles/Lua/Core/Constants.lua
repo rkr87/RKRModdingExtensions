@@ -1,4 +1,4 @@
-local ANSI_COLOURS = {
+local ANSI_COLOURS = Rkr.Dict({
     RESET   = "\27[0m",
     RED     = "\27[31m",
     GREEN   = "\27[32m",
@@ -7,6 +7,6 @@ local ANSI_COLOURS = {
     MAGENTA = "\27[35m",
     CYAN    = "\27[36m",
     GREY    = "\27[38;5;245m",
-}
+})
 
 Rkr.Constants.ANSI_COLOURS = ANSI_COLOURS
