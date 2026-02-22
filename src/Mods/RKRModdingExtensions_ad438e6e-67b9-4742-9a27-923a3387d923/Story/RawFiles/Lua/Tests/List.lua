@@ -1,370 +1,394 @@
 local List = Rkr.List
 
-local function test_construction()
-    Rkr.Test.assert_test(
-        "List()",
-        List(),
-        function() return List() end
-    )
-
-    Rkr.Test.assert_test(
-        "List.list({ 1, 2, 3 })",
-        List({ 1, 2, 3 }),
-        function() return List.list({ 1, 2, 3 }) end
-    )
-end
-
-local function test_indexing()
-    local l = List({ 10, 20, 30, 40, 50 })
-
-    Rkr.Test.assert_test(
-        "List({10,20,30,40,50})[0]",
-        10,
-        function() return l[0] end
-    )
-
-    Rkr.Test.assert_test(
-        "List({10,20,30,40,50})[-1]",
-        50,
-        function() return l[-1] end
-    )
-
-    Rkr.Test.assert_error(
-        "List({10,20,30,40,50})[99]",
-        function() return l[99] end,
-        "IndexError"
-    )
-end
-
-local function test_assignment()
-    local l = List({ 1, 2, 3 })
-
-    l[1] = 99
-
-    Rkr.Test.assert_test(
-        "List({1,2,3})[1]=99",
-        List({ 1, 99, 3 }),
-        function() return l end
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3})[10]=5",
-        function() l[10] = 5 end,
-        "IndexError"
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3})[10.72]=5",
-        function() l[10.72] = 5 end,
-        "TypeError"
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3})['test']=5",
-        function() l['test'] = 5 end,
-        "NameError"
-    )
-end
-
-local function test_append()
-    local l = List({ 1, 2 })
-
-    l:append(3)
-
-    Rkr.Test.assert_test(
-        "List({1,2}):append(3)",
-        List({ 1, 2, 3 }),
-        function() return l end
-    )
-end
-
-local function test_insert()
-    local l = List({ 1, 2, 3 })
-
-    l:insert(1, 99)
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):insert(1,99)",
-        List({ 1, 99, 2, 3 }),
-        function() return l end
-    )
-
-    l = List({ 1, 2, 3 })
-
-    l:insert(100, 5)
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):insert(100,5)",
-        List({ 1, 2, 3, 5 }),
-        function() return l end
-    )
-end
-
-local function test_pop()
-    local l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):pop()",
-        3,
-        function() return l:pop() end
-    )
-
-    l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):pop(0)",
-        1,
-        function() return l:pop(0) end
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3}):pop(99)",
-        function() l:pop(99) end,
-        "IndexError"
-    )
-
-    l = List({})
-    Rkr.Test.assert_error(
-        "List({}):pop()",
-        function() l:pop() end,
-        "IndexError"
-    )
-end
-
-local function test_len()
-    local l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "#List({1,2,3})",
-        3,
-        function() return #l end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):len()",
-        3,
-        function() return l:len() end
-    )
-end
-
-local function test_contains()
-    local l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):contains(2)",
-        true,
-        function() return l:contains(2) end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):contains(9)",
-        false,
-        function() return l:contains(9) end
-    )
-end
-
-local function test_count()
-    local l = List({ 1, 2, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,2,3}):count(2)",
-        2,
-        function() return l:count(2) end
-    )
-end
-
-local function test_index_method()
-    local l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):index(2)",
-        1,
-        function() return l:index(2) end
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3}):index(9)",
-        function() l:index(9) end,
-        "ValueError"
-    )
-end
-
-local function test_slice()
-    local l = List({ 1, 2, 3, 4, 5 })
-
-    Rkr.Test.assert_test(
-        "List({1,2,3,4,5}):slice(1,4)",
-        List({ 2, 3, 4 }),
-        function() return l:slice(1, 4) end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3,4,5}):slice(-4,-1)",
-        List({ 2, 3, 4 }),
-        function() return l:slice(-4, -1) end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3,4,5}):slice(nil,nil,2)",
-        List({ 1, 3, 5 }),
-        function() return l:slice(nil, nil, 2) end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3,4,5}):slice(nil,nil,-1)",
-        List({ 5, 4, 3, 2, 1 }),
-        function() return l:slice(nil, nil, -1) end
-    )
-
-    Rkr.Test.assert_test(
-        "List({1,2,3,4,5}):slice(-999,999)",
-        List({ 1, 2, 3, 4, 5 }),
-        function() return l:slice(-999, 999) end
-    )
-
-    Rkr.Test.assert_error(
-        "List({1,2,3,4,5}):slice(nil,nil,0)",
-        function() l:slice(nil, nil, 0) end,
-        "ValueError"
-    )
-end
-
-local function test_reverse()
-    local l = List({ 1, 2, 3 })
-    l:reverse()
-    Rkr.Test.assert_test(
-        "List({1,2,3}):reverse()",
-        List({ 3, 2, 1 }),
-        function() return l end
-    )
-end
-
-local function test_sort()
-    local l = List({ 3, 1, 2 })
-    l:sort()
-    Rkr.Test.assert_test(
-        "List({3,1,2}):sort()",
-        List({ 1, 2, 3 }),
-        function() return l end
-    )
-end
-
-local function test_copy()
-    local l1 = List({ 1, 2, 3 })
-    local l2 = l1:copy()
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):copy() == List({1,2,3})",
-        List({ 1, 2, 3 }),
-        function() return l2 end
-    )
-
-    Rkr.Test.assert_test(
-        "l=List({1,2,3}); rawequal(l, l:copy()) == false",
-        false,
-        function() return rawequal(l1, l2) end
-    )
-end
-
-local function test_clear()
-    local l = List({ 1, 2, 3 })
-
-    l:clear()
-
-    Rkr.Test.assert_test(
-        "List({1,2,3}):clear()",
-        List(),
-        function() return l end
-    )
-end
-
-local function test_iter()
-    local l = List({ 10, 20, 30 })
-    local collected = List()
-
-    for i, v in l:iter() do
-        collected:append(List({ i, v }))
-    end
-
-    Rkr.Test.assert_test(
-        "List({10,20,30}):iter()",
-        List({
-            List({ 0, 10 }),
-            List({ 1, 20 }),
-            List({ 2, 30 })
-        }),
-        function() return collected end
-    )
-end
-
-local function test_values()
-    local l = List({ 5, 6, 7 })
-    local collected = List()
-
-    for v in l:values() do
-        collected:append(v)
-    end
-
-    Rkr.Test.assert_test(
-        "List({5,6,7}):values()",
-        List({ 5, 6, 7 }),
-        function() return collected end
-    )
-end
-
-local function test_call()
-    local l = List({ 1, 2, 3 })
-    local collected = List()
-
-    for v in l() do
-        collected:append(v)
-    end
-
-    Rkr.Test.assert_test(
-        "List({1,2,3})()",
-        List({ 1, 2, 3 }),
-        function() return collected end
-    )
-end
-
-local function test_tostring()
-    local l = List({ 1, 2, 3 })
-
-    Rkr.Test.assert_test(
-        "tostring(List({1,2,3}))",
-        "[1, 2, 3]",
-        function() return tostring(l) end
-    )
-
-    local empty = List()
-
-    Rkr.Test.assert_test(
-        "tostring(List())",
-        "[]",
-        function() return tostring(empty) end
-    )
-end
-
-local function run_tests()
-    test_construction()
-    test_indexing()
-    test_assignment()
-    test_append()
-    test_insert()
-    test_pop()
-    test_len()
-    test_contains()
-    test_count()
-    test_index_method()
-    test_slice()
-    test_reverse()
-    test_sort()
-    test_copy()
-    test_clear()
-    test_iter()
-    test_values()
-    test_call()
-    test_tostring()
-end
-
-run_tests()
+local t = { 10, 20, 20, 40, 25 }
+
+describe("List", function()
+    ---@type list<number>
+    local l
+    before_each(function() l = List(t) end)
+
+    ----------------------------------------------------------------
+    -- Construction
+    ----------------------------------------------------------------
+
+    describe("construct", function()
+        it("creates empty list", function()
+            expect_it(List())
+                .deep_equals(List().new())
+                .and_it.deep_equals(List.list())
+                .and_it.deep_equals(List.list({}))
+                .and_it.deep_equals(List({}))
+                .and_it.deep_equals(List().new({}))
+        end)
+
+        it("creates list from table", function()
+            expect_it(l)
+                .deep_equals(List().new(t))
+                .and_it.deep_equals(List.list(t))
+        end)
+
+        it("creates list from iterator", function()
+            expect_it(List.list(l())).deep_equals(l)
+            expect_it(function() return List.list(l:values()) end)
+                .deep_equals(l)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Index Access (l[index])
+    ----------------------------------------------------------------
+
+    describe("index access", function()
+        it("returns value at index 0", function()
+            expect_it(l[0]).equals(10)
+        end)
+
+        it("supports negative indexing", function()
+            expect_it(l[-1]).equals(25)
+        end)
+
+        it("throws IndexError when out of bounds", function()
+            expect_index(l, 99).errors("IndexError")
+        end)
+
+        it("throws error for invalid index type", function()
+            expect_index(l, "test").errors("NameError")
+            expect_index(l, 99.00).errors("IndexError")
+        end)
+
+        it("l[i] equals internal sequence position", function()
+            for i = 0, #l - 1 do
+                expect_it(l[i]).equals(l:values()[i + 1])
+            end
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Assignment
+    ----------------------------------------------------------------
+
+    describe("assign", function()
+        before_each(function() l = List(t) end)
+
+        it("assigns value at index", function()
+            expect_assign(l, 1, 99)
+                .deep_equals(List({ 10, 99, 20, 40, 25 }))
+        end)
+
+        it("appends when assigning at length", function()
+            expect_assign(l, 5, 99)
+                .deep_equals(List({ 10, 20, 20, 40, 25, 99 }))
+        end)
+
+        it("throws IndexError when out of bounds", function()
+            expect_assign(l, 10, 5).errors("IndexError")
+        end)
+
+        it("throws error for invalid index type", function()
+            expect_assign(l, 10.72, 5).errors("TypeError")
+            expect_assign(l, "test", 5).errors("NameError")
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Append
+    ----------------------------------------------------------------
+
+    describe("append", function()
+        it("adds value to end of list", function()
+            l:append(4)
+            expect_it(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Insert
+    ----------------------------------------------------------------
+
+    describe("insert", function()
+        before_each(function() l = List(t) end)
+
+        it("inserts value at given index", function()
+            l:insert(1, 4)
+            expect_it(l).deep_equals(List({ 10, 4, 20, 20, 40, 25 }))
+        end)
+
+        it("appends when index is greater than length", function()
+            l:insert(100, 4)
+            expect_it(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Pop
+    ----------------------------------------------------------------
+
+    describe("pop", function()
+        before_each(function() l = List(t) end)
+
+        it("removes and returns last element when no index given", function()
+            expect_it(l:pop()).equals(25)
+            expect_it(l).deep_equals(List({ 10, 20, 20, 40 }))
+        end)
+
+        it("removes and returns element at given index", function()
+            expect_it(l:pop(0)).equals(10)
+            expect_it(l).deep_equals(List({ 20, 20, 40, 25 }))
+        end)
+
+        it("throws IndexError when index out of bounds", function()
+            expect_call(l, "pop", 99).errors("IndexError")
+            expect_it(l).deep_equals(List(t))
+        end)
+
+        it("throws IndexError when list is empty", function()
+            l = List()
+            expect_call(l, "pop").errors("IndexError")
+            expect_it(l).deep_equals(List())
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Length
+    ----------------------------------------------------------------
+
+    describe("length", function()
+        it("returns correct length using # operator", function()
+            expect_it(l).has_length(5)
+        end)
+
+        it("returns correct length using len()", function()
+            expect_it(l:len()).equals(5)
+        end)
+        it("empty list is zero", function()
+            expect_it(List()).has_length(0)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Contains
+    ----------------------------------------------------------------
+
+    describe("contains", function()
+        it("returns true when value exists", function()
+            expect_it(l).contains(20)
+        end)
+
+        it("returns false when value does not exist", function()
+            expect_it(l).to_not.contains(7)
+        end)
+        it("returns false on empty list", function()
+            expect_it(List()).to_not.contains(10)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Count
+    ----------------------------------------------------------------
+
+    describe("count", function()
+        it("returns 1 when value appears once", function()
+            expect_it(l:count(10)).equals(1)
+        end)
+
+        it("returns 0 when value does not exist", function()
+            expect_it(l:count(30)).equals(0)
+        end)
+
+        it("returns correct count for duplicate values", function()
+            expect_it(l:count(20)).equals(2)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Index Search (l:index(value))
+    ----------------------------------------------------------------
+
+    describe("index search", function()
+        it("returns index of existing value", function()
+            expect_it(l:index(40)).equals(3)
+        end)
+
+        it("returns first index when duplicates exist", function()
+            expect_it(l:index(20)).equals(1)
+        end)
+
+        it("throws ValueError when value not found", function()
+            expect_call(l, "index", 9).errors("ValueError")
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Slice
+    ----------------------------------------------------------------
+
+    describe("slice", function()
+        it("returns sublist between indices", function()
+            expect_it(l:slice(1, 4))
+                .deep_equals(List({ 20, 20, 40 }))
+        end)
+
+        it("supports negative indices", function()
+            expect_it(l:slice(-4, -1))
+                .deep_equals(List({ 20, 20, 40 }))
+        end)
+
+        it("supports step parameter", function()
+            expect_it(l:slice(nil, nil, 2))
+                .deep_equals(List({ 10, 20, 25 }))
+        end)
+
+        it("supports reverse slicing", function()
+            expect_it(l:slice(nil, nil, -1))
+                .deep_equals(List({ 25, 40, 20, 20, 10 }))
+        end)
+
+        it("clamps out-of-bounds indices", function()
+            expect_it(l:slice(-999, 999)).deep_equals(l)
+        end)
+
+        it("throws ValueError when step is zero", function()
+            expect_call(l, "slice", nil, nil, 0).errors("ValueError")
+        end)
+        it("slice with extremely large bounds", function()
+            expect_it(l:slice(-1e9, 1e9)).deep_equals(l)
+        end)
+
+        it("slice with nil parameters", function()
+            expect_it(l:slice()).deep_equals(l)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Reverse
+    ----------------------------------------------------------------
+
+    describe("reverse", function()
+        it("reverses list in place", function()
+            l:reverse()
+            expect_it(l).deep_equals(List({ 25, 40, 20, 20, 10 }))
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Sort
+    ----------------------------------------------------------------
+
+    describe("sort", function()
+        it("sorts list in ascending order by default", function()
+            l:sort()
+            expect_it(l).deep_equals(List({ 10, 20, 20, 25, 40 }))
+        end)
+
+        it("sorts using custom descending comparator", function()
+            l:sort(function(a, b) return a > b end)
+            expect_it(l).deep_equals(List({ 40, 25, 20, 20, 10 }))
+        end)
+
+        it("sorts using custom comparator with derived value", function()
+            local nums = List({ -10, 5, -3, 2 })
+            nums:sort(function(a, b) return math.abs(a) < math.abs(b) end)
+            expect_it(nums).deep_equals(List({ 2, -3, 5, -10 }))
+        end)
+
+        it("sorts strings alphabetically", function()
+            local strs = List({ "banana", "apple", "cherry" })
+            strs:sort()
+            expect_it(strs).deep_equals(List({ "apple", "banana", "cherry" }))
+        end)
+
+        it("does not error on empty list", function()
+            local empty = List()
+            empty:sort()
+            expect_it(empty).deep_equals(List())
+        end)
+
+        it("throws error if comparator is not a function", function()
+            expect_call(l, "sort", 123).errors("TypeError")
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Copy
+    ----------------------------------------------------------------
+
+    describe("copy", function()
+        local new = l:copy()
+
+        it("returns a new independent copy", function()
+            expect_it(new).deep_equals(List(t))
+            expect_it(rawequal(new, l)).equals(false)
+        end)
+        it("mutations do not affect original after copy", function()
+            new:append(999)
+            expect_it(l).to_not.contains(999)
+            expect_it(new).contains(999)
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Clear
+    ----------------------------------------------------------------
+
+    describe("clear", function()
+        it("removes all elements", function()
+            l:clear()
+            expect_it(l).deep_equals(List())
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- Iteration
+    ----------------------------------------------------------------
+
+    describe("iteration", function()
+        it("iter returns index-value pairs", function()
+            expect_it(List.list(l:iter())).deep_equals(List({
+                List({ 0, 10 }),
+                List({ 1, 20 }),
+                List({ 2, 20 }),
+                List({ 3, 40 }),
+                List({ 4, 25 })
+            }))
+        end)
+        it("values returns all values", function()
+            expect_it(List.list(l:values())).deep_equals(List(t))
+        end)
+        it("callable list returns values", function()
+            expect_it(List.list(l())).deep_equals(List(t))
+        end)
+        it("iterator can be consumed fully", function()
+            local values = {}
+            for v in l:values() do
+                table.insert(values, v)
+            end
+            expect_it(List(values)).deep_equals(List(t))
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- tostring
+    ----------------------------------------------------------------
+
+    describe("tostring", function()
+        it("returns formatted string representation", function()
+            expect_it(tostring(l))
+                .equals("[10, 20, 20, 40, 25]")
+        end)
+
+        it("returns [] for empty list", function()
+            expect_it(tostring(List())).equals("[]")
+        end)
+    end)
+
+    ----------------------------------------------------------------
+    -- misc
+    ----------------------------------------------------------------
+
+    describe("heterogeneous lists", function()
+        it("supports mixed value types", function()
+            local mixed = List({ 1, "a", true, 4, { 1, 4 } })
+            expect_it(#mixed).equals(5)
+        end)
+    end)
+end)

@@ -179,27 +179,53 @@ list.size = list.len
 ---@generic T
 ---@return fun(): number, T
 function list:iter()
-    local i = -1
+    local i = 0
     local n = self._size
     return function()
-        i = i + 1
         if i < n then
-            return i, self._data[i]
+            --TODO replace this with Tuple class
+            local result = list.new({ i, self._data[i] })
+            i = i + 1
+            return result
         end
     end
 end
 
 ---@generic T
----@return fun(): T
+---@return fun(): T | list<T>
 function list:values()
-    local i = -1
-    local n = self._size
-    return function()
-        i = i + 1
-        if i < n then
-            return self._data[i]
+    local i = 0
+    local cache = {}
+
+    local function next_value()
+        if i < self._size then
+            local v = self._data[i]
+            i = i + 1
+            table.insert(cache, v)
+            return v
         end
     end
+
+    local iterator_object = list.new()
+
+    setmetatable(iterator_object, {
+        __call = function()
+            return next_value()
+        end,
+
+        __index = function(_, key)
+            if type(key) == "number" then
+                while #cache < key do
+                    local v = next_value()
+                    if v == nil then break end
+                end
+                return cache[key]
+            end
+            return nil
+        end
+    })
+
+    return iterator_object
 end
 
 function list:__call()
