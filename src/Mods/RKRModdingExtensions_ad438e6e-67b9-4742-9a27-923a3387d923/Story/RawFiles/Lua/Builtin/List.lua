@@ -1,7 +1,7 @@
 -- List.lua
 ---@class list<T>
 ---@field private _data T[]
----@field private _size number
+---@field private _size integer
 local list = {}
 list.__index = list
 
@@ -24,7 +24,7 @@ function list.new(t)
     return self
 end
 
----@param index number
+---@param index integer
 local function valid_index(index)
     if type(index) ~= "number" then
         error("NameError: name '" .. index .. ' is not defined')
@@ -33,10 +33,10 @@ local function valid_index(index)
     end
 end
 
----@param index number
----@param size number
+---@param index integer
+---@param size integer
 ---@param inclusive? boolean | nil
----@return number
+---@return integer
 local function clamp_index(index, size, inclusive)
     inclusive = inclusive or false
     if index < 0 then
@@ -46,17 +46,17 @@ local function clamp_index(index, size, inclusive)
     return math.max(math.min(size + 1, index), 0)
 end
 
----@param index number
----@param size number
----@return number
+---@param index integer
+---@param size integer
+---@return integer
 local function normalise_inclusive(index, size)
     valid_index(index)
     return clamp_index(index, size)
 end
 
----@param index number
----@param size number
----@return number
+---@param index integer
+---@param size integer
+---@return integer
 local function normalise(index, size)
     index = normalise_inclusive(index, size)
     if index < 0 or index >= size then
@@ -79,7 +79,7 @@ function list:__index(key)
     return class_value
 end
 
----@param index number
+---@param index integer
 ---@param value T
 function list:__newindex(index, value)
     index = normalise_inclusive(index, self._size)
@@ -93,7 +93,7 @@ function list:__newindex(index, value)
     self._data[index] = value
 end
 
----@return number
+---@return integer
 function list:__len()
     return self._size
 end
@@ -107,7 +107,7 @@ end
 list.add = list.append
 list.push = list.append
 
----@param index number
+---@param index integer
 ---@param value T
 function list:insert(index, value)
     valid_index(index)
@@ -130,7 +130,7 @@ function list:extend(other)
     end
 end
 
----@param index number|nil
+---@param index integer|nil
 ---@return T
 function list:pop(index)
     if self._size == 0 then
@@ -170,7 +170,7 @@ function list:clear()
     self._size = 0
 end
 
----@return number
+---@return integer
 function list:len()
     return self._size
 end
@@ -178,7 +178,7 @@ end
 list.size = list.len
 
 ---@generic T
----@return fun(): list<number| T>
+---@return fun(): list<integer| T>
 function list:iter()
     local i = 0
     local n = self._size
@@ -244,9 +244,9 @@ function list:copy()
 end
 
 ---@generic T
----@param start number|nil
----@param stop number|nil
----@param step number|nil
+---@param start integer|nil
+---@param stop integer|nil
+---@param step integer|nil
 ---@return list<T>
 function list:slice(start, stop, step)
     local result = list.new()
@@ -433,7 +433,7 @@ function list:contains(value)
 end
 
 ---@param value T
----@return number
+---@return integer
 function list:count(value)
     local c = 0
     for i = 0, self._size - 1 do
@@ -445,7 +445,7 @@ function list:count(value)
 end
 
 ---@param value T
----@return number|nil
+---@return integer|nil
 function list:index(value)
     for i = 0, self._size - 1 do
         if self._data[i] == value then
@@ -456,7 +456,7 @@ function list:index(value)
 end
 
 ---@param value T
----@return list<number>
+---@return list<integer>
 function list:index_all(value)
     local result = list.new()
     for i = 0, self._size - 1 do
