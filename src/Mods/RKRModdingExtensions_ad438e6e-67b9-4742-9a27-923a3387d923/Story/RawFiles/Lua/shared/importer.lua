@@ -1,4 +1,3 @@
-local m_log = RkrModdingExtensions.log:with_context("Importer")
 local SharedVars = {}
 
 local PrivateKeys = {
@@ -66,7 +65,8 @@ local Importer = {
 ---@param target_mod table
 ---@param mod_name string
 function Import(target_mod, mod_name)
-    local log = m_log:extend_context(mod_name)
+    local log = RkrModdingExtensions.log:with_context("Importer")
+        :extend_context(mod_name)
     local mod_id = target_mod.ModuleUUID or "<unknown>"
     log:info("Importing mod table '%s' for '%s'", mod_id, mod_name)
 

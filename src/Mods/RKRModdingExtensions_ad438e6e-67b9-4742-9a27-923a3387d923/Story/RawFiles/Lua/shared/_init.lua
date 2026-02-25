@@ -1,0 +1,5 @@
+Ext.Require("shared/constants.lua")
+Ext.Require("shared/logger.lua")
+Ext.Require("shared/settings_manager.lua")
+Ext.Require("shared/importer.lua")
+Ext.Require("shared/test.lua")
