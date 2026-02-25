@@ -8,11 +8,12 @@ settings.__index = settings
 
 ---@type dict<string, any>
 local GLOBAL_DEFAULTS = Rkr.Dict({
-    log_level = "WARN",
-    log_verbose = false,
+    log_level = RkrModdingExtensions.DefaultLogLevel,
+    log_verbose = RkrModdingExtensions.DefaultLogVerbose,
     run_tests = false
 })
 local base_path = "Rkr/Settings"
+
 ---Create the central settings manager.
 ---@return settings
 function settings.new()
@@ -133,12 +134,12 @@ ModSettingsView.__index = ModSettingsView
 ---@param default any?
 ---@return any
 function ModSettingsView:get(key, default)
-    local m = self._manager:get_mod(self._mod_name)[key]
+    local m = self._manager:get_mod(self._mod_name):get(key)
     if m ~= nil then
         self._log:debug("Retrieved setting '%s' from mod settings : %s", key, m)
         return m
     end
-    local g = self._manager:get_global()[key]
+    local g = self._manager:get_global():get(key)
     if g ~= nil then
         self._log:debug("Retrieved setting '%s' from global settings : %s", key, g)
         return g
@@ -238,8 +239,10 @@ end
 function SettingsManager.get_mod(mod_name)
     local mod = _static_load_file(mod_name)
     local global = _static_load_file("global")
-    local log_level = (mod and mod.log_level) or (global and global.log_level) or GLOBAL_DEFAULTS.log_level
-    local log_verbose = (mod and mod.log_verbose) or (global and global.log_verbose) or GLOBAL_DEFAULTS.log_verbose
+    local log_level = (mod and mod:get("log_level")) or (global and global:get("log_level")) or GLOBAL_DEFAULTS
+        .log_level
+    local log_verbose = (mod and mod:get("log_verbose")) or (global and global:get("log_verbose")) or
+        GLOBAL_DEFAULTS.log_verbose
     Rkr.Logger.log(log_level, log_verbose, "INFO", "SettingsManager",
         "Loading global settings for mod '%s'", mod_name)
     local result = GLOBAL_DEFAULTS:copy()

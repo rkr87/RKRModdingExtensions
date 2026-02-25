@@ -37,5 +37,8 @@ Ext.Require("Core/_Init.lua")
 Ext.Require("Shared/_Init.lua")
 
 if not RkrModdingExtensions.Settings.run_tests then return end
-Rkr.Test.initialise(RkrModdingExtensions.ModName)
+Rkr.Test.initialise(
+    RkrModdingExtensions.ModName,
+    RkrModdingExtensions.Settings.log_level
+)
 Ext.Require("Tests/_Init.lua")

@@ -1,17 +1,18 @@
 ---@enum LoggingLevel
-local LOG_LEVEL = {
+---@type dict<string,number>
+local LOG_LEVEL = Rkr.Dict({
     DEBUG = 1,
     INFO = 2,
     WARN = 3,
     ERROR = 4
-}
+})
 
-local LEVEL_COLOURS = {
+local LEVEL_COLOURS = Rkr.Dict({
     DEBUG = Rkr.Constants.ANSI_COLOURS.GREY,
     INFO  = Rkr.Constants.ANSI_COLOURS.GREEN,
     WARN  = Rkr.Constants.ANSI_COLOURS.YELLOW,
     ERROR = Rkr.Constants.ANSI_COLOURS.RED,
-}
+})
 
 ---@class logger
 ---@field name string The name of the application (e.g., "AETPatch")
@@ -33,10 +34,10 @@ local fallback_name = "RkrModdingExtensions"
 ---@return logger
 function logger.new(app_name, initial_level, verbose)
     local self = setmetatable({}, logger)
-    initial_level = initial_level or "INFO"
+    initial_level = initial_level or RkrModdingExtensions.DefaultLogLevel
     self.name = app_name or fallback_name
     self.level = logger.Level[initial_level]
-    self.verbose = verbose or false
+    self.verbose = verbose or RkrModdingExtensions.DefaultLogVerbose
     self.context = nil
     self.log = self:with_context("Logger")
     self.log:info(
@@ -203,6 +204,29 @@ function Logger.log(set_level, set_verbose, level_name, context, fmt, ...)
     end
     local message = (select('#', ...) > 0) and string.format(fmt, ...) or tostring(fmt)
     print(prefix .. " " .. message)
+end
+
+--- Static: Returns the numeric value of a log level.
+---@param level_name string
+---@return number
+function Logger.get_level_number(level_name)
+    if type(level_name) ~= "string" then
+        return 3
+    end
+    local default = LOG_LEVEL:get(RkrModdingExtensions.DefaultLogLevel)
+    return LOG_LEVEL:get(level_name:upper(), default)
+end
+
+--- Returns the level name for a numeric log level.
+---@param level_value number
+---@return string
+function Logger.get_level_name(level_value)
+    for name, value in LOG_LEVEL:items() do
+        if value == level_value then
+            return name
+        end
+    end
+    return RkrModdingExtensions.DefaultLogLevel
 end
 
 RkrModdingExtensions.make_callable(Logger, logger.new)

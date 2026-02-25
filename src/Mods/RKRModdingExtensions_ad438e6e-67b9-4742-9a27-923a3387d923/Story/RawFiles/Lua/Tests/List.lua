@@ -2,348 +2,265 @@ local List = Rkr.List
 
 local t = { 10, 20, 20, 40, 25 }
 
-describe("List", function()
-    ---@type list<number>
-    local l
-    before_each(function() l = List(t) end)
+---@type list<integer>
+local l
 
-    ----------------------------------------------------------------
-    -- Construction
-    ----------------------------------------------------------------
+describe("List", function()
+    before_each(function() l = List(t) end)
 
     describe("construct", function()
         it("creates empty list", function()
-            expect_it(List())
-                .deep_equals(List().new())
+            expect(List()).deep_equals(List.new())
                 .and_it.deep_equals(List.list())
                 .and_it.deep_equals(List.list({}))
                 .and_it.deep_equals(List({}))
-                .and_it.deep_equals(List().new({}))
+                .and_it.deep_equals(List.new({}))
         end)
-
         it("creates list from table", function()
-            expect_it(l)
-                .deep_equals(List().new(t))
+            expect(l).deep_equals(List.new(t))
                 .and_it.deep_equals(List.list(t))
         end)
-
         it("creates list from iterator", function()
-            expect_it(List.list(l())).deep_equals(l)
-            expect_it(function() return List.list(l:values()) end)
-                .deep_equals(l)
+            expect(List.list(l())).deep_equals(l)
+            expect(List.list(l:values())).deep_equals(l)
         end)
     end)
 
-    ----------------------------------------------------------------
-    -- Index Access (l[index])
-    ----------------------------------------------------------------
-
     describe("index access", function()
         it("returns value at index 0", function()
-            expect_it(l[0]).equals(10)
+            expect(l[0]).equals(10)
         end)
-
         it("supports negative indexing", function()
-            expect_it(l[-1]).equals(25)
+            expect(l[-1]).equals(25)
         end)
-
         it("throws IndexError when out of bounds", function()
             expect_index(l, 99).errors("IndexError")
         end)
-
         it("throws error for invalid index type", function()
             expect_index(l, "test").errors("NameError")
             expect_index(l, 99.00).errors("IndexError")
         end)
-
         it("l[i] equals internal sequence position", function()
             for i = 0, #l - 1 do
-                expect_it(l[i]).equals(l:values()[i + 1])
+                expect(l[i]).equals(l:values()[i + 1])
             end
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Assignment
-    ----------------------------------------------------------------
 
     describe("assign", function()
         before_each(function() l = List(t) end)
 
         it("assigns value at index", function()
-            expect_assign(l, 1, 99)
-                .deep_equals(List({ 10, 99, 20, 40, 25 }))
+            expect_assign(l, 1, 99).deep_equals(List({ 10, 99, 20, 40, 25 }))
         end)
-
         it("appends when assigning at length", function()
-            expect_assign(l, 5, 99)
-                .deep_equals(List({ 10, 20, 20, 40, 25, 99 }))
+            expect_assign(l, 5, 99).deep_equals(List({ 10, 20, 20, 40, 25, 99 }))
         end)
-
         it("throws IndexError when out of bounds", function()
             expect_assign(l, 10, 5).errors("IndexError")
         end)
-
         it("throws error for invalid index type", function()
             expect_assign(l, 10.72, 5).errors("TypeError")
             expect_assign(l, "test", 5).errors("NameError")
         end)
     end)
 
-    ----------------------------------------------------------------
-    -- Append
-    ----------------------------------------------------------------
-
     describe("append", function()
         it("adds value to end of list", function()
             l:append(4)
-            expect_it(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
+            expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Insert
-    ----------------------------------------------------------------
 
     describe("insert", function()
         before_each(function() l = List(t) end)
 
         it("inserts value at given index", function()
             l:insert(1, 4)
-            expect_it(l).deep_equals(List({ 10, 4, 20, 20, 40, 25 }))
+            expect(l).deep_equals(List({ 10, 4, 20, 20, 40, 25 }))
         end)
-
         it("appends when index is greater than length", function()
             l:insert(100, 4)
-            expect_it(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
+            expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 4 }))
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Pop
-    ----------------------------------------------------------------
 
     describe("pop", function()
         before_each(function() l = List(t) end)
 
         it("removes and returns last element when no index given", function()
-            expect_it(l:pop()).equals(25)
-            expect_it(l).deep_equals(List({ 10, 20, 20, 40 }))
+            expect(l:pop()).equals(25)
+            expect(l).deep_equals(List({ 10, 20, 20, 40 }))
         end)
-
         it("removes and returns element at given index", function()
-            expect_it(l:pop(0)).equals(10)
-            expect_it(l).deep_equals(List({ 20, 20, 40, 25 }))
+            expect(l:pop(0)).equals(10)
+            expect(l).deep_equals(List({ 20, 20, 40, 25 }))
         end)
-
         it("throws IndexError when index out of bounds", function()
-            expect_call(l, "pop", 99).errors("IndexError")
-            expect_it(l).deep_equals(List(t))
+            expect(function() l:pop(99) end).errors("IndexError")
+            expect(l).deep_equals(List(t))
         end)
-
         it("throws IndexError when list is empty", function()
             l = List()
-            expect_call(l, "pop").errors("IndexError")
-            expect_it(l).deep_equals(List())
+            expect(function() l:pop() end).errors("IndexError")
+            expect(l).deep_equals(List())
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Length
-    ----------------------------------------------------------------
 
     describe("length", function()
         it("returns correct length using # operator", function()
-            expect_it(l).has_length(5)
+            expect(l).has_length(5)
         end)
-
         it("returns correct length using len()", function()
-            expect_it(l:len()).equals(5)
+            expect(l:len()).equals(5)
         end)
         it("empty list is zero", function()
-            expect_it(List()).has_length(0)
+            expect(List()).has_length(0)
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Contains
-    ----------------------------------------------------------------
 
     describe("contains", function()
         it("returns true when value exists", function()
-            expect_it(l).contains(20)
+            expect(l).contains(20)
+            expect(l:contains(20)).equals(true)
         end)
-
         it("returns false when value does not exist", function()
-            expect_it(l).to_not.contains(7)
+            expect(l).to_not.contains(7)
+            expect(l:contains(7)).equals(false)
         end)
         it("returns false on empty list", function()
-            expect_it(List()).to_not.contains(10)
+            expect(List()).to_not.contains(10)
+            expect(List():contains(10)).equals(false)
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Count
-    ----------------------------------------------------------------
 
     describe("count", function()
         it("returns 1 when value appears once", function()
-            expect_it(l:count(10)).equals(1)
+            expect(l:count(10)).equals(1)
         end)
-
         it("returns 0 when value does not exist", function()
-            expect_it(l:count(30)).equals(0)
+            expect(l:count(30)).equals(0)
         end)
-
         it("returns correct count for duplicate values", function()
-            expect_it(l:count(20)).equals(2)
+            expect(l:count(20)).equals(2)
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Index Search (l:index(value))
-    ----------------------------------------------------------------
 
     describe("index search", function()
         it("returns index of existing value", function()
-            expect_it(l:index(40)).equals(3)
+            expect(l:index(40)).equals(3)
         end)
-
         it("returns first index when duplicates exist", function()
-            expect_it(l:index(20)).equals(1)
+            expect(l:index(20)).equals(1)
         end)
-
         it("throws ValueError when value not found", function()
-            expect_call(l, "index", 9).errors("ValueError")
+            expect(function() l:index(9) end).errors("ValueError")
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Slice
-    ----------------------------------------------------------------
 
     describe("slice", function()
         it("returns sublist between indices", function()
-            expect_it(l:slice(1, 4))
+            expect(l:slice(1, 4))
                 .deep_equals(List({ 20, 20, 40 }))
         end)
-
         it("supports negative indices", function()
-            expect_it(l:slice(-4, -1))
+            expect(l:slice(-4, -1))
                 .deep_equals(List({ 20, 20, 40 }))
         end)
-
         it("supports step parameter", function()
-            expect_it(l:slice(nil, nil, 2))
+            expect(l:slice(nil, nil, 2))
                 .deep_equals(List({ 10, 20, 25 }))
         end)
-
         it("supports reverse slicing", function()
-            expect_it(l:slice(nil, nil, -1))
+            expect(l:slice(nil, nil, -1))
                 .deep_equals(List({ 25, 40, 20, 20, 10 }))
         end)
-
         it("clamps out-of-bounds indices", function()
-            expect_it(l:slice(-999, 999)).deep_equals(l)
+            expect(l:slice(-999, 999)).deep_equals(l)
         end)
-
         it("throws ValueError when step is zero", function()
-            expect_call(l, "slice", nil, nil, 0).errors("ValueError")
+            expect(function() l:slice(nil, nil, 0) end).errors("ValueError")
         end)
         it("slice with extremely large bounds", function()
-            expect_it(l:slice(-1e9, 1e9)).deep_equals(l)
+            expect(l:slice(-1e9, 1e9)).deep_equals(l)
         end)
-
         it("slice with nil parameters", function()
-            expect_it(l:slice()).deep_equals(l)
+            expect(l:slice()).deep_equals(l)
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Reverse
-    ----------------------------------------------------------------
 
     describe("reverse", function()
         it("reverses list in place", function()
             l:reverse()
-            expect_it(l).deep_equals(List({ 25, 40, 20, 20, 10 }))
+            expect(l).deep_equals(List({ 25, 40, 20, 20, 10 }))
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Sort
-    ----------------------------------------------------------------
 
     describe("sort", function()
         it("sorts list in ascending order by default", function()
             l:sort()
-            expect_it(l).deep_equals(List({ 10, 20, 20, 25, 40 }))
+            expect(l).deep_equals(List({ 10, 20, 20, 25, 40 }))
         end)
-
         it("sorts using custom descending comparator", function()
             l:sort(function(a, b) return a > b end)
-            expect_it(l).deep_equals(List({ 40, 25, 20, 20, 10 }))
+            expect(l).deep_equals(List({ 40, 25, 20, 20, 10 }))
         end)
-
         it("sorts using custom comparator with derived value", function()
             local nums = List({ -10, 5, -3, 2 })
             nums:sort(function(a, b) return math.abs(a) < math.abs(b) end)
-            expect_it(nums).deep_equals(List({ 2, -3, 5, -10 }))
+            expect(nums).deep_equals(List({ 2, -3, 5, -10 }))
         end)
-
         it("sorts strings alphabetically", function()
             local strs = List({ "banana", "apple", "cherry" })
             strs:sort()
-            expect_it(strs).deep_equals(List({ "apple", "banana", "cherry" }))
+            expect(strs).deep_equals(List({ "apple", "banana", "cherry" }))
         end)
-
         it("does not error on empty list", function()
             local empty = List()
             empty:sort()
-            expect_it(empty).deep_equals(List())
+            expect(empty).deep_equals(List())
         end)
-
         it("throws error if comparator is not a function", function()
-            expect_call(l, "sort", 123).errors("TypeError")
+            ---@diagnostic disable-next-line: param-type-mismatch
+            expect(function() l:sort(123) end).errors("TypeError")
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Copy
-    ----------------------------------------------------------------
 
     describe("copy", function()
-        local new = l:copy()
-
         it("returns a new independent copy", function()
-            expect_it(new).deep_equals(List(t))
-            expect_it(rawequal(new, l)).equals(false)
+            local new = l:copy()
+            expect(new).deep_equals(List(t))
+            expect(rawequal(new, l)).equals(false)
         end)
         it("mutations do not affect original after copy", function()
+            local new = l:copy()
             new:append(999)
-            expect_it(l).to_not.contains(999)
-            expect_it(new).contains(999)
+            expect(l).to_not.contains(999)
+            expect(new).contains(999)
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- Clear
-    ----------------------------------------------------------------
 
     describe("clear", function()
         it("removes all elements", function()
             l:clear()
-            expect_it(l).deep_equals(List())
+            expect(l).deep_equals(List())
         end)
     end)
 
-    ----------------------------------------------------------------
-    -- Iteration
-    ----------------------------------------------------------------
-
     describe("iteration", function()
-        it("iter returns index-value pairs", function()
-            expect_it(List.list(l:iter())).deep_equals(List({
+        it("iter returns index, value pairs", function()
+            local i_l = List()
+            local v_l = List()
+            for i, v in l:iter() do
+                i_l:append(i)
+                v_l:append(v)
+            end
+            expect(i_l).deep_equals(List({ 0, 1, 2, 3, 4 }))
+            expect(v_l).deep_equals(List(t))
+        end)
+        it("items returns an iterator on tuple of index, value pairs", function()
+            --TODO change this to a tuple..
+            expect(List.list(l:items())).deep_equals(List({
                 List({ 0, 10 }),
                 List({ 1, 20 }),
                 List({ 2, 20 }),
@@ -352,45 +269,31 @@ describe("List", function()
             }))
         end)
         it("values returns all values", function()
-            expect_it(List.list(l:values())).deep_equals(List(t))
+            expect(List.list(l:values())).deep_equals(List(t))
         end)
         it("callable list returns values", function()
-            expect_it(List.list(l())).deep_equals(List(t))
+            expect(List.list(l())).deep_equals(List(t))
         end)
         it("iterator can be consumed fully", function()
             local values = {}
-            for v in l:values() do
-                table.insert(values, v)
-            end
-            expect_it(List(values)).deep_equals(List(t))
+            for v in l:values() do table.insert(values, v) end
+            expect(List(values)).deep_equals(List(t))
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- tostring
-    ----------------------------------------------------------------
 
     describe("tostring", function()
         it("returns formatted string representation", function()
-            expect_it(tostring(l))
-                .equals("[10, 20, 20, 40, 25]")
+            expect(tostring(l)).equals("[10, 20, 20, 40, 25]")
         end)
-
         it("returns [] for empty list", function()
-            expect_it(tostring(List())).equals("[]")
+            expect(tostring(List())).equals("[]")
         end)
     end)
-
-    ----------------------------------------------------------------
-    -- misc
-    ----------------------------------------------------------------
 
     describe("heterogeneous lists", function()
         it("supports mixed value types", function()
             local mixed = List({ 1, "a", true, 4, { 1, 4 } })
-            expect_it(#mixed).equals(5)
+            expect(#mixed).equals(5)
         end)
     end)
 end)
-
-Rkr.Test.summary()

@@ -1,7 +1,7 @@
 local m_log = RkrModdingExtensions.log:with_context("Importer")
-local SharedVars = Rkr.Dict({})
+local SharedVars = {}
 
-local PrivateKeys = Rkr.Dict({
+local PrivateKeys = {
     ModuleUUID = true,
     PersistentVars = true,
     LoadPersistentVars = true,
@@ -16,7 +16,7 @@ local PrivateKeys = Rkr.Dict({
     Import = true,
     CustomSkillProperties = true,
     _PV = true,
-})
+}
 
 local Importer = {
     setup_shared_vars = function(targetMod)
