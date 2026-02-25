@@ -10,3 +10,5 @@ local ANSI_COLOURS = Rkr.Dict({
 })
 
 Rkr.Constants.ANSI_COLOURS = ANSI_COLOURS
+RkrModdingExtensions.DefaultLogLevel = "WARN"
+RkrModdingExtensions.DefaultLogVerbose = false
