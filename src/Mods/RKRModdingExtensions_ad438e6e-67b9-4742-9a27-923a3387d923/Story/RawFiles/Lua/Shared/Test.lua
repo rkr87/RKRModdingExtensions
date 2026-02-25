@@ -40,8 +40,14 @@ function Test.current()
 end
 
 ---@param mod_name string
-function Test.initialise(mod_name)
-    local logger = Rkr.Logger(mod_name, "INFO", true)
+---@param mod_log_level string use Logger.level
+function Test.initialise(mod_name, mod_log_level)
+    local log_level_no = math.min(
+        Rkr.Logger.get_level_number("WARN"),
+        Rkr.Logger.get_level_number(mod_log_level)
+    )
+    local log_level_name = Rkr.Logger.get_level_name(log_level_no)
+    local logger = Rkr.Logger(mod_name, log_level_name, true)
     local runtime = TestRuntime.new(logger)
     Test.use_instance(runtime)
 end
@@ -98,67 +104,174 @@ function Test.print_failure(full_name, err)
         if title and detail then
             get_logger():error("FAIL: %s :: %s", full_name, detail)
             get_logger():error("    %s: %s", location, title)
-        else
-            get_logger():error("FAIL: %s", full_name)
-            get_logger():error("    %s: %s", location, message)
+            return
         end
-    else
         get_logger():error("FAIL: %s", full_name)
-        get_logger():error("    %s", s)
+        get_logger():error("    %s: %s", location, message)
     end
+    get_logger():error("FAIL: %s", full_name)
+    get_logger():error("    %s", s)
+end
+
+function Test.print_pass(full_name)
+    get_logger():info("PASS: %s", full_name)
 end
 
 function describe(name, fn)
     local self = Test.current()
 
     table.insert(self.suite_stack, name)
+    local full_suite_name = table.concat(self.suite_stack, "::")
+
+    local suite_context = {
+        name = full_suite_name,
+        test_total = 0,
+        test_failed = 0,
+        suite_total = 0,
+        suite_failed = 0
+    }
+
+    self._suite_context_stack = self._suite_context_stack or {}
+    table.insert(self._suite_context_stack, suite_context)
 
     local previous_suite = self.current_suite
-    self.current_suite = table.concat(self.suite_stack, "::")
+    self.current_suite = full_suite_name
 
+    -- Execute suite body
     fn()
 
+    -- Determine suite pass/fail
+    local suite_passed =
+        suite_context.test_failed == 0
+        and suite_context.suite_failed == 0
+
+    -- Build summary parts
+    local parts = {}
+
+    if suite_context.suite_total > 0 then
+        if suite_context.suite_failed > 0 then
+            table.insert(parts,
+                string.format(
+                    "%d/%d suites failed",
+                    suite_context.suite_failed,
+                    suite_context.suite_total
+                )
+            )
+        else
+            table.insert(parts,
+                string.format(
+                    "%d suites",
+                    suite_context.suite_total
+                )
+            )
+        end
+    end
+
+    if suite_context.test_total > 0 then
+        if suite_context.test_failed > 0 then
+            table.insert(parts,
+                string.format(
+                    "%d/%d tests failed",
+                    suite_context.test_failed,
+                    suite_context.test_total
+                )
+            )
+        else
+            table.insert(parts,
+                string.format(
+                    "%d tests",
+                    suite_context.test_total
+                )
+            )
+        end
+    end
+
+    local summary_text = ""
+    if #parts > 0 then
+        summary_text = " (" .. table.concat(parts, " & ") .. ")"
+    end
+
+    if suite_passed then
+        get_logger():warn(
+            "SUITE PASS: %s%s",
+            suite_context.name,
+            summary_text
+        )
+    else
+        get_logger():error(
+            "SUITE FAIL: %s%s",
+            suite_context.name,
+            summary_text
+        )
+    end
+
+    table.remove(self._suite_context_stack)
     self.current_suite = previous_suite
     table.remove(self.suite_stack)
+
+    local parent =
+        self._suite_context_stack
+        and self._suite_context_stack[#self._suite_context_stack]
+
+    if parent then
+        parent.suite_total = parent.suite_total + 1
+
+        if not suite_passed then
+            parent.suite_failed = parent.suite_failed + 1
+        end
+    end
 end
 
----@param suite_name string|nil
----@param hook_table table
-local function resolve_hook(suite_name, hook_table)
-    if not suite_name then return nil end
+local function resolve_hooks(suite_name, hook_table)
+    if not suite_name then return {} end
 
     local parts = {}
     for part in string.gmatch(suite_name, "[^:]+") do
         table.insert(parts, part)
     end
 
+    local resolved = {}
+
     while #parts > 0 do
         local path = table.concat(parts, "::")
 
-        if hook_table[path] then
-            return hook_table[path]
+        local hooks = hook_table[path]
+        if hooks then
+            for _, h in ipairs(hooks) do
+                table.insert(resolved, h)
+            end
         end
 
         table.remove(parts)
     end
 
-    return nil
+    return resolved
 end
 
 function before_each(fn)
     local self = Test.current()
 
-    if self.current_suite then
-        self.before_hooks[self.current_suite] = fn
+    if not self.current_suite then
+        return
     end
+
+    local path = self.current_suite
+
+    self.before_hooks[path] = self.before_hooks[path] or {}
+    table.insert(self.before_hooks[path], fn)
 end
 
 function after_each(fn)
     local self = Test.current()
 
-    if self.current_suite then
-        self.after_hooks[self.current_suite] = fn
+    if not self.current_suite then
+        return
     end
+
+    local path = self.current_suite
+
+    self.after_hooks[path] = self.after_hooks[path] or {}
+    table.insert(self.after_hooks[path], fn)
 end
 
 function it(name, fn)
@@ -166,18 +279,34 @@ function it(name, fn)
 
     self.total = self.total + 1
 
+    local suite_context =
+        self._suite_context_stack
+        and self._suite_context_stack[#self._suite_context_stack]
+
+    if suite_context then
+        suite_context.test_total = suite_context.test_total + 1
+    end
+
     local full_name = self.current_suite and
         (self.current_suite .. " :: " .. name) or name
 
-    local before = resolve_hook(self.current_suite, self.before_hooks)
-    local after = resolve_hook(self.current_suite, self.after_hooks)
+    local befores = resolve_hooks(self.current_suite, self.before_hooks)
+    local afters = resolve_hooks(self.current_suite, self.after_hooks)
 
     local ok, err = pcall(function()
-        if before then before() end
+        if befores then
+            for _, hook in ipairs(befores) do
+                hook()
+            end
+        end
 
         fn()
 
-        if after then after() end
+        if afters then
+            for _, hook in ipairs(afters) do
+                hook()
+            end
+        end
 
         if #self.soft_failures > 0 then
             local msg = table.concat(self.soft_failures, "\n")
@@ -187,9 +316,12 @@ function it(name, fn)
     end)
 
     if ok then
-        get_logger():info("PASS: %s", full_name)
+        Test.print_pass(full_name)
     else
         self.failed = self.failed + 1
+        if suite_context then
+            suite_context.test_failed = suite_context.test_failed + 1
+        end
         Test.print_failure(full_name, err)
     end
 end
@@ -252,7 +384,7 @@ local function build_expect(context)
         local ok = false
         if getmetatable(actual)
             and actual.__eq then
-            ok = (actual == expected)
+            ok = actual == expected
         else
             ok = deep_equal(actual, expected)
         end
@@ -310,7 +442,6 @@ local function build_expect(context)
         end
 
         local ok, err = pcall(context.actual)
-
         if ok then
             fail("Expected error but none occurred")
         end
@@ -368,7 +499,7 @@ local function build_expect(context)
     return api
 end
 
-function expect_it(value)
+function expect(value)
     return build_expect {
         actual = value,
         negate = false,
@@ -376,22 +507,14 @@ function expect_it(value)
     }
 end
 
-function expect_call(obj, method, ...)
-    local args = { ... }
-
-    return expect_it(function()
-        return obj[method](obj, table.unpack(args))
-    end)
-end
-
 function expect_index(obj, key)
-    return expect_it(function()
+    return expect(function()
         return obj[key]
     end)
 end
 
 function expect_assign(obj, key, value)
-    return expect_it(function()
+    return expect(function()
         obj[key] = value
         return obj --get mutated object for comparion
     end)
@@ -413,7 +536,7 @@ function Test.soft()
             value = value
         }, {
             __index = function(tbl, key)
-                local matcher = expect_it(tbl.value)[key]
+                local matcher = expect(tbl.value)[key]
 
                 if type(matcher) == "function" then
                     return function(...)
