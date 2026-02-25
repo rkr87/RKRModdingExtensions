@@ -5,24 +5,64 @@
 local list = {}
 list.__index = list
 
+---------------------------------------------------------------------
+-- Public API
+---------------------------------------------------------------------
+
+---@class List
+local List = {}
+
 ---@generic T
 ---@param t T[]|nil
 ---@return list<T>
-function list.new(t)
-    local self = setmetatable({
-        _data = {},
-        _size = 0
-    }, list)
-
+function List.new(t)
+    local data = {}
+    local size = 0
     if t then
         for _, v in ipairs(t) do
-            self._data[self._size] = v
-            self._size = self._size + 1
+            data[size] = v
+            size = size + 1
         end
     end
 
+    local self = setmetatable({
+        _data = data,
+        _size = size
+    }, list)
+
     return self
 end
+
+---@generic T
+---@param obj? list<T> | nil | table | fun(): T
+---@return list<T>
+function List.list(obj)
+    if obj == nil then return List.new() end
+    if getmetatable(obj) == list then return obj:copy() end
+
+    local t = {}
+    if type(obj) == "table" then
+        local i = 1
+        for _, v in ipairs(obj) do
+            t[i] = v
+            i = i + 1
+        end
+    elseif type(obj) == "function" then
+        local i = 1
+        for v in obj do
+            t[i] = v
+            i = i + 1
+        end
+    else
+        error("TypeError: Rkr.list() expects table, iterable, or List")
+    end
+
+    return List.new(t)
+end
+
+---------------------------------------------------------------------
+-- Internal Helpers
+---------------------------------------------------------------------
 
 ---@param index integer
 local function valid_index(index)
@@ -37,7 +77,7 @@ end
 ---@param size integer
 ---@param inclusive? boolean | nil
 ---@return integer
-local function clamp_index(index, size, inclusive)
+local function _clamp_index(index, size, inclusive)
     inclusive = inclusive or false
     if index < 0 then
         index = size + index
@@ -51,7 +91,7 @@ end
 ---@return integer
 local function normalise_inclusive(index, size)
     valid_index(index)
-    return clamp_index(index, size)
+    return _clamp_index(index, size)
 end
 
 ---@param index integer
@@ -64,6 +104,10 @@ local function normalise(index, size)
     end
     return index
 end
+
+---------------------------------------------------------------------
+-- Metamethods
+---------------------------------------------------------------------
 
 ---@param key any
 ---@return any
@@ -97,6 +141,42 @@ end
 function list:__len()
     return self._size
 end
+
+function list:__call()
+    return self:values()
+end
+
+---@param other list<T>
+function list:__eq(other)
+    if getmetatable(other) ~= list then
+        return false
+    end
+
+    if self._size ~= other._size then
+        return false
+    end
+
+    for i = 0, self._size - 1 do
+        if self._data[i] ~= other._data[i] then
+            return false
+        end
+    end
+
+    return true
+end
+
+---@return string
+function list:__tostring()
+    local parts = {}
+    for i = 0, self._size - 1 do
+        parts[i + 1] = tostring(self._data[i])
+    end
+    return "[" .. table.concat(parts, ", ") .. "]"
+end
+
+---------------------------------------------------------------------
+-- Core Methods
+---------------------------------------------------------------------
 
 ---@param value T
 function list:append(value)
@@ -178,14 +258,28 @@ end
 list.size = list.len
 
 ---@generic T
----@return fun(): list<integer| T>
+---@return fun(): integer, T
 function list:iter()
     local i = 0
     local n = self._size
     return function()
         if i < n then
-            --TODO replace this with Tuple class
-            local result = list.new({ i, self._data[i] })
+            local r_i, r_v = i, self._data[i]
+            i = i + 1
+            return r_i, r_v
+        end
+    end
+end
+
+---@generic T
+---@return fun(): list<number|T>
+function list:items()
+    local i = 0
+    local n = self._size
+    return function()
+        if i < n then
+            -- TODO make this a hashable tuple
+            local result = List.new({ i, self._data[i] })
             i = i + 1
             return result
         end
@@ -193,7 +287,7 @@ function list:iter()
 end
 
 ---@generic T
----@return fun(): T | list<T>
+---@return fun(): T
 function list:values()
     local i = 0
     local cache = {}
@@ -207,7 +301,7 @@ function list:values()
         end
     end
 
-    local iterator_object = list.new()
+    local iterator_object = List.new()
 
     setmetatable(iterator_object, {
         __call = function()
@@ -229,10 +323,6 @@ function list:values()
     return iterator_object
 end
 
-function list:__call()
-    return self:values()
-end
-
 ---@generic T
 ---@return list<T>
 function list:copy()
@@ -240,7 +330,7 @@ function list:copy()
     for i = 0, self._size - 1 do
         t[i + 1] = self._data[i]
     end
-    return list.new(t)
+    return List.new(t)
 end
 
 ---@generic T
@@ -249,7 +339,7 @@ end
 ---@param step integer|nil
 ---@return list<T>
 function list:slice(start, stop, step)
-    local result = list.new()
+    local result = List.new()
     local n = self._size
 
     step = step or 1
@@ -258,14 +348,14 @@ function list:slice(start, stop, step)
     end
 
     if step > 0 then
-        start = clamp_index(start or 0, n)
-        stop = clamp_index(stop or n, n)
+        start = _clamp_index(start or 0, n)
+        stop = _clamp_index(stop or n, n)
     else
-        start = clamp_index(start or n, n)
+        start = _clamp_index(start or n, n)
         if stop == nil then
             stop = -1
         else
-            stop = clamp_index(stop, n)
+            stop = _clamp_index(stop, n)
         end
     end
 
@@ -458,7 +548,7 @@ end
 ---@param value T
 ---@return list<integer>
 function list:index_all(value)
-    local result = list.new()
+    local result = List.new()
     for i = 0, self._size - 1 do
         if self._data[i] == value then
             result:append(i)
@@ -470,71 +560,7 @@ function list:index_all(value)
     return result
 end
 
----@param other list<T>
-function list:__eq(other)
-    if getmetatable(other) ~= list then
-        return false
-    end
-
-    if self._size ~= other._size then
-        return false
-    end
-
-    for i = 0, self._size - 1 do
-        if self._data[i] ~= other._data[i] then
-            return false
-        end
-    end
-
-    return true
-end
-
----@return string
-function list:__tostring()
-    local parts = {}
-    for i = 0, self._size - 1 do
-        parts[i + 1] = tostring(self._data[i])
-    end
-    return "[" .. table.concat(parts, ", ") .. "]"
-end
-
----@class List
-local List = {}
-
----@generic T
----@param obj? list<T> | nil | table | fun(): T
----@return list<T>
-function List.list(obj)
-    if obj == nil then
-        return list.new()
-    end
-
-    if getmetatable(obj) == list then
-        return obj:copy()
-    end
-
-    local t = {}
-
-    if type(obj) == "table" then
-        local i = 1
-        for _, v in ipairs(obj) do
-            t[i] = v
-            i = i + 1
-        end
-    elseif type(obj) == "function" then
-        local i = 1
-        for v in obj do
-            t[i] = v
-            i = i + 1
-        end
-    else
-        error("TypeError: Rkr.list() expects table, iterable, or List")
-    end
-
-    return list.new(t)
-end
-
-RkrModdingExtensions.make_callable(List, list.new)
+RkrModdingExtensions.make_callable(List, List.new)
 ---@overload fun<T>(t: T[]?): list<T>
 Rkr.List = List
 Rkr.list = List.list
