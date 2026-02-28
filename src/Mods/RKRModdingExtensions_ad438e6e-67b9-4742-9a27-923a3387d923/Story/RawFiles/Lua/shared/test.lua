@@ -95,6 +95,7 @@ end
 
 function Test.print_failure(full_name, err)
     local s = tostring(err)
+    local log = get_logger()
 
     local location, message = s:match("^(.+:%d+):%s*(.+)$")
 
@@ -102,15 +103,15 @@ function Test.print_failure(full_name, err)
         local title, detail = message:match("^(.-)%s*::%s*(.+)$")
 
         if title and detail then
-            get_logger():error("FAIL: %s :: %s", full_name, detail)
-            get_logger():error("    %s: %s", location, title)
+            log:error("FAIL: %s :: %s", full_name, detail)
+            log:error("    %s: %s", location, title)
             return
         end
-        get_logger():error("FAIL: %s", full_name)
-        get_logger():error("    %s: %s", location, message)
+        log:error("FAIL: %s", full_name)
+        log:error("    %s: %s", location, message)
     end
-    get_logger():error("FAIL: %s", full_name)
-    get_logger():error("    %s", s)
+    log:error("FAIL: %s", full_name)
+    log:error("    %s", s)
 end
 
 function Test.print_pass(full_name)
@@ -190,19 +191,11 @@ function describe(name, fn)
     if #parts > 0 then
         summary_text = " (" .. table.concat(parts, " & ") .. ")"
     end
-
+    local log = get_logger()
     if suite_passed then
-        get_logger():warn(
-            "SUITE PASS: %s%s",
-            suite_context.name,
-            summary_text
-        )
+        log:warn("SUITE PASS: %s%s", suite_context.name, summary_text)
     else
-        get_logger():error(
-            "SUITE FAIL: %s%s",
-            suite_context.name,
-            summary_text
-        )
+        log:error("SUITE FAIL: %s%s", suite_context.name, summary_text)
     end
 
     table.remove(self._suite_context_stack)
@@ -328,11 +321,11 @@ end
 
 function Test.summary()
     local self = Test.current()
-
+    local log = get_logger()
     if self.failed == 0 then
-        get_logger():info("ALL TESTS PASSED (%d)", self.total)
+        log:info("ALL TESTS PASSED (%d)", self.total)
     else
-        get_logger():error("%d/%d TESTS FAILED", self.failed, self.total)
+        log:error("%d/%d TESTS FAILED", self.failed, self.total)
     end
 end
 
@@ -369,7 +362,7 @@ local function build_expect(context)
     function api.equals(expected)
         local actual = evaluate_context()
         context.test_name = context.test_name or
-            ("expect_it(" .. stringify(actual) .. ") == " .. stringify(expected))
+            ("expect(" .. stringify(actual) .. ") == " .. stringify(expected))
 
         return check(actual == expected,
             "Expected " .. stringify(expected) ..
