@@ -1,238 +1,124 @@
--- List.lua
----@class list<T>
----@field private _data T[]
+--------------------------------------------------------------------------------
+-- list<T>
+--
+-- Concrete mutable 0-based sequence implementation.
+--
+-- Backed by:
+--   • _data  (sparse 0-based array)
+--   • _size  (explicit length tracking)
+--
+-- Public constructor exposed via List(...)
+--------------------------------------------------------------------------------
+
+---@type MutableSequence
+local MutableSequence = Ext.Require("containers/base/mutable_sequence.lua")
+
+---@class list<T>: MutableSequence<T>, Object
+---@field private _data table<integer, T>
 ---@field private _size integer
-local list = {}
-list.__index = list
+---@field private __public List
+---@field append fun(self: list<T>, value: T)
+---@field extend fun(self: list<T>, other: list<T>)
+---@field insert fun(self: list<T>, index: integer, value: T)
+---@field pop fun(self: list<T>, index?: integer): T
+---@field remove fun(self: list<T>, value: T)
+---@field clear fun(self: list<T>)
+---@field __len fun(self: list<T>): integer
+---@field __index_protocol fun(self: list<T>, index: integer): T
+---@field __set_index_protocol fun(self: list<T>, index: integer, value: T)
+---@field __tostring fun(self: list<T>): string
+local list = MutableSequence:derive("list")
 
----------------------------------------------------------------------
--- Public API
----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Public Constructor Wrapper
+--------------------------------------------------------------------------------
 
----@class List
+---@class List<T>
+---@field new fun(t?: T[]|list<T>|fun():T|table): list<T>
+---@field list fun(obj?: list<T>|table|fun():T): list<T>
 local List = {}
+list.__public = List
+setmetatable(List, { __call = function(_, ...) return List.new(...) end })
 
----@generic T
----@param t T[]|nil
----@return list<T>
+--------------------------------------------------------------------------------
+-- Construction
+--------------------------------------------------------------------------------
+
 function List.new(t)
     local data = {}
     local size = 0
-    if t then
+    if t == nil then return setmetatable({ _data = data, _size = size }, list) end
+
+    if getmetatable(t) == list then return t:copy() end
+    local typ = type(t)
+    if typ == "table" then
         for _, v in ipairs(t) do
             data[size] = v
             size = size + 1
         end
-    end
-
-    local self = setmetatable({
-        _data = data,
-        _size = size
-    }, list)
-
-    return self
-end
-
----@generic T
----@param obj? list<T> | nil | table | fun(): T
----@return list<T>
-function List.list(obj)
-    if obj == nil then return List.new() end
-    if getmetatable(obj) == list then return obj:copy() end
-
-    local t = {}
-    if type(obj) == "table" then
-        local i = 1
-        for _, v in ipairs(obj) do
-            t[i] = v
-            i = i + 1
-        end
-    elseif type(obj) == "function" then
-        local i = 1
-        for v in obj do
-            t[i] = v
-            i = i + 1
+    elseif typ == "function" then
+        for v in t do
+            data[size] = v
+            size = size + 1
         end
     else
-        error("TypeError: Rkr.list() expects table, iterable, or List")
+        return Rkr.Error.Type("List.new() expects table, list, iterator or nil")
     end
 
-    return List.new(t)
+    return setmetatable({ _data = data, _size = size }, list)
 end
 
----------------------------------------------------------------------
--- Internal Helpers
----------------------------------------------------------------------
+-- TODO: Get rid of this
+List.list = List.new
 
----@param index integer
-local function valid_index(index)
-    if type(index) ~= "number" then
-        error("NameError: name '" .. index .. ' is not defined')
-    elseif index ~= math.floor(index) then
-        error("TypeError: list indices must be integers or slices, not float")
-    end
-end
+--------------------------------------------------------------------------------
+-- Required Protocol Implementations
+--------------------------------------------------------------------------------
 
----@param index integer
----@param size integer
----@param inclusive? boolean | nil
----@return integer
-local function _clamp_index(index, size, inclusive)
-    inclusive = inclusive or false
-    if index < 0 then
-        index = size + index
-    end
-    if inclusive then size = size + 1 end
-    return math.max(math.min(size + 1, index), 0)
-end
+function list:__index_protocol(index) return self._data[index] end
 
----@param index integer
----@param size integer
----@return integer
-local function normalise_inclusive(index, size)
-    valid_index(index)
-    return _clamp_index(index, size)
-end
+function list:__set_index_protocol(index, value) self._data[index] = value end
 
----@param index integer
----@param size integer
----@return integer
-local function normalise(index, size)
-    index = normalise_inclusive(index, size)
-    if index < 0 or index >= size then
-        error("IndexError: list index out of range")
-    end
-    return index
-end
+function list:__len() return self._size end
 
----------------------------------------------------------------------
--- Metamethods
----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Mutating Operations
+--------------------------------------------------------------------------------
 
----@param key any
----@return any
-function list:__index(key)
-    if type(key) == "number" then
-        key = normalise(key, self._size)
-        return self._data[key]
-    end
-    local class_value = rawget(list, key)
-    if class_value == nil then
-        error("NameError: name '" .. key .. ' is not defined')
-    end
-    return class_value
-end
-
----@param index integer
----@param value T
-function list:__newindex(index, value)
-    index = normalise_inclusive(index, self._size)
-
-    if index == self._size then
-        self._data[self._size] = value
-        self._size = self._size + 1
-        return
-    end
-    normalise(index, self._size)
-    self._data[index] = value
-end
-
----@return integer
-function list:__len()
-    return self._size
-end
-
-function list:__call()
-    return self:values()
-end
-
----@param other list<T>
-function list:__eq(other)
-    if getmetatable(other) ~= list then
-        return false
-    end
-
-    if self._size ~= other._size then
-        return false
-    end
-
-    for i = 0, self._size - 1 do
-        if self._data[i] ~= other._data[i] then
-            return false
-        end
-    end
-
-    return true
-end
-
----@return string
-function list:__tostring()
-    local parts = {}
-    for i = 0, self._size - 1 do
-        parts[i + 1] = tostring(self._data[i])
-    end
-    return "[" .. table.concat(parts, ", ") .. "]"
-end
-
----------------------------------------------------------------------
--- Core Methods
----------------------------------------------------------------------
-
----@param value T
 function list:append(value)
     self._data[self._size] = value
     self._size = self._size + 1
 end
 
-list.add = list.append
-list.push = list.append
+function list:extend(other)
+    for i = 0, other._size - 1 do self:append(other._data[i]) end
+end
 
----@param index integer
----@param value T
 function list:insert(index, value)
-    valid_index(index)
-    index = normalise_inclusive(index, self._size)
+    self:_validate_index(index)
+    index = self:_normalise_index_inclusive(index, self._size)
     index = math.max(index, 0)
     index = math.min(index, self._size)
-
     for i = self._size, index, -1 do
         self._data[i] = self._data[i - 1]
     end
-
     self._data[index] = value
     self._size = self._size + 1
 end
 
----@param other list<T>
-function list:extend(other)
-    for i = 0, other._size - 1 do
-        self:append(other._data[i])
-    end
-end
-
----@param index integer|nil
----@return T
 function list:pop(index)
-    if self._size == 0 then
-        error("IndexError: pop from empty list")
-    end
-
+    if self._size == 0 then Rkr.Error.Index("pop from empty list") end
     index = index or self._size - 1
-    index = normalise(index, self._size)
-
+    index = self:_normalise_index(index, self._size)
     local value = self._data[index]
-
     for i = index, self._size - 1 do
         self._data[i] = self._data[i + 1]
     end
-
     self._data[self._size] = nil
     self._size = self._size - 1
-
     return value
 end
 
----@param value T
 function list:remove(value)
     for i = 0, self._size - 1 do
         if self._data[i] == value then
@@ -240,327 +126,23 @@ function list:remove(value)
             return
         end
     end
-    error("ValueError: " .. tostring(value) .. " is not in list")
+    Rkr.Error.Value("%s is not in list", value)
 end
 
 function list:clear()
-    for i = 0, self._size - 1 do
-        self._data[i] = nil
-    end
+    for i = 0, self._size - 1 do self._data[i] = nil end
     self._size = 0
 end
 
----@return integer
-function list:len()
-    return self._size
-end
+--------------------------------------------------------------------------------
+-- Metamethods
+--------------------------------------------------------------------------------
 
-list.size = list.len
+function list:__tostring() return self:_format_sequence("[", "]") end
 
----@generic T
----@return fun(): integer, T
-function list:iter()
-    local i = 0
-    local n = self._size
-    return function()
-        if i < n then
-            local r_i, r_v = i, self._data[i]
-            i = i + 1
-            return r_i, r_v
-        end
-    end
-end
+--------------------------------------------------------------------------------
+-- Finalisation
+--------------------------------------------------------------------------------
 
----@generic T
----@return fun(): list<number|T>
-function list:items()
-    local i = 0
-    local n = self._size
-    return function()
-        if i < n then
-            -- TODO make this a hashable tuple
-            local result = List.new({ i, self._data[i] })
-            i = i + 1
-            return result
-        end
-    end
-end
-
----@generic T
----@return fun(): T
-function list:values()
-    local i = 0
-    local cache = {}
-
-    local function next_value()
-        if i < self._size then
-            local v = self._data[i]
-            i = i + 1
-            table.insert(cache, v)
-            return v
-        end
-    end
-
-    local iterator_object = List.new()
-
-    setmetatable(iterator_object, {
-        __call = function()
-            return next_value()
-        end,
-
-        __index = function(_, key)
-            if type(key) == "number" then
-                while #cache < key do
-                    local v = next_value()
-                    if v == nil then break end
-                end
-                return cache[key]
-            end
-            return nil
-        end
-    })
-
-    return iterator_object
-end
-
----@generic T
----@return list<T>
-function list:copy()
-    local t = {}
-    for i = 0, self._size - 1 do
-        t[i + 1] = self._data[i]
-    end
-    return List.new(t)
-end
-
----@generic T
----@param start integer|nil
----@param stop integer|nil
----@param step integer|nil
----@return list<T>
-function list:slice(start, stop, step)
-    local result = List.new()
-    local n = self._size
-
-    step = step or 1
-    if step == 0 then
-        error("ValueError: slice step cannot be zero")
-    end
-
-    if step > 0 then
-        start = _clamp_index(start or 0, n)
-        stop = _clamp_index(stop or n, n)
-    else
-        start = _clamp_index(start or n, n)
-        if stop == nil then
-            stop = -1
-        else
-            stop = _clamp_index(stop, n)
-        end
-    end
-
-    local function _append_result(i)
-        if i >= 0 and i < n then
-            result:append(self._data[i])
-        end
-        return i + step
-    end
-
-    local i = start
-    if step > 0 then
-        while i < stop do
-            i = _append_result(i)
-        end
-    else
-        while i > stop do
-            i = _append_result(i)
-        end
-    end
-    return result
-end
-
-function list:reverse()
-    local i, j = 0, self._size - 1
-    while i < j do
-        self._data[i], self._data[j] = self._data[j], self._data[i]
-        i = i + 1
-        j = j - 1
-    end
-end
-
----@generic T
----@param cmp? fun(a:T,b:T):boolean|nil
-function list:sort(cmp)
-    cmp = cmp or function(a, b)
-        return a < b
-    end
-    if type(cmp) ~= "function" then
-        error("TypeError: comparator must be a function")
-    end
-    local threshold = 16
-
-    local function insertion_sort(left, right)
-        for i = left + 1, right do
-            local key = self._data[i]
-            local j = i - 1
-
-            while j >= left and cmp(key, self._data[j]) do
-                self._data[j + 1] = self._data[j]
-                j = j - 1
-            end
-
-            self._data[j + 1] = key
-        end
-    end
-
-    local function heapify(n, i, offset)
-        local largest = i
-        local l = 2 * i + 1 - offset
-        local r = l + 1
-
-        if l <= n and cmp(self._data[largest], self._data[l]) then
-            largest = l
-        end
-
-        if r <= n and cmp(self._data[largest], self._data[r]) then
-            largest = r
-        end
-
-        if largest ~= i then
-            self._data[i], self._data[largest] =
-                self._data[largest], self._data[i]
-
-            heapify(n, largest, offset)
-        end
-    end
-
-    local function heap_sort(left, right)
-        local n = right
-
-        for i = math.floor(n / 2), left, -1 do
-            heapify(right, i, left)
-        end
-
-        for i = right, left + 1, -1 do
-            self._data[left], self._data[i] =
-                self._data[i], self._data[left]
-
-            heapify(i - 1, left, left)
-        end
-    end
-
-    local function partition(left, right)
-        local pivot = self._data[math.floor((left + right) / 2)]
-
-        local i = left
-        local j = right
-
-        while i <= j do
-            while cmp(self._data[i], pivot) do
-                i = i + 1
-            end
-
-            while cmp(pivot, self._data[j]) do
-                j = j - 1
-            end
-
-            if i <= j then
-                self._data[i], self._data[j] =
-                    self._data[j], self._data[i]
-
-                i = i + 1
-                j = j - 1
-            end
-        end
-
-        return i, j
-    end
-
-    local function introsort(left, right, depth_limit)
-        while right - left > threshold do
-            if depth_limit == 0 then
-                heap_sort(left, right)
-                return
-            end
-
-            local i, j = partition(left, right)
-
-            depth_limit = depth_limit - 1
-
-            if j - left < right - i then
-                if left < j then
-                    introsort(left, j, depth_limit)
-                end
-                left = i
-            else
-                if i < right then
-                    introsort(i, right, depth_limit)
-                end
-                right = j
-            end
-        end
-
-        insertion_sort(left, right)
-    end
-
-    local n = self._size
-
-    if n > 1 then
-        local depth_limit = math.floor(2 * math.log(n + 1, 2))
-        introsort(0, n - 1, depth_limit)
-    end
-end
-
----@param value T
----@return boolean
-function list:contains(value)
-    for i = 0, self._size - 1 do
-        if self._data[i] == value then
-            return true
-        end
-    end
-    return false
-end
-
----@param value T
----@return integer
-function list:count(value)
-    local c = 0
-    for i = 0, self._size - 1 do
-        if self._data[i] == value then
-            c = c + 1
-        end
-    end
-    return c
-end
-
----@param value T
----@return integer|nil
-function list:index(value)
-    for i = 0, self._size - 1 do
-        if self._data[i] == value then
-            return i
-        end
-    end
-    error("ValueError: " .. tostring(value) .. " is not in list")
-end
-
----@param value T
----@return list<integer>
-function list:index_all(value)
-    local result = List.new()
-    for i = 0, self._size - 1 do
-        if self._data[i] == value then
-            result:append(i)
-        end
-    end
-    if result:len() == 0 then
-        error("ValueError: " .. tostring(value) .. " is not in list")
-    end
-    return result
-end
-
-RkrModdingExtensions.make_callable(List, List.new)
----@overload fun<T>(t: T[]?): list<T>
+list:finalise()
 Rkr.List = List
-Rkr.list = List.list
