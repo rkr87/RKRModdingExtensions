@@ -1,47 +1,27 @@
---------------------------------------------------------------------------------
--- Object
---
--- Root base class for the container type system.
--- Provides:
---   • Class derivation
---   • Abstract enforcement
---   • Required method contracts
---   • Metamethod propagation
---------------------------------------------------------------------------------
-
 ---@class Object
 ---@field __name string
 ---@field __parent Object|nil
 ---@field __requires table<string, boolean>
+---@field __ancestory table<string, boolean>
 ---@field __abstract boolean
 ---@field __public fun(...): Object
 ---@field new fun(self: Object, ...): Object    -
 ---@field derive fun(self: Object, name: string, opts?: table): Object
 ---@field finalise fun(self: Object)
+---@field is fun(self: Object, other: string): boolean
 ---@field __tostring fun(self: Object): string
 local Object = {}
 Object.__index = Object
 Object.__requires = {}
+Object.__ancestory = { ["Object"] = true }
 Object.__abstract = true
 
---------------------------------------------------------------------------------
--- Instance Construction
---------------------------------------------------------------------------------
-
----Creates a new instance of the class.
----The class itself acts as the metatable.
 function Object:new(...)
     local obj = {}
     setmetatable(obj, self)
     return obj
 end
 
---------------------------------------------------------------------------------
--- Metamethod Propagation (Internal)
---------------------------------------------------------------------------------
-
----Propagates selected metamethods from parent to child class
----if not explicitly overridden.
 local function propagate_metamethods(child, parent)
     local m = { "__tostring", "__add", "__sub", "__eq", "__len", "__pairs",
         "__call", "__index", "__newindex" }
@@ -52,12 +32,6 @@ local function propagate_metamethods(child, parent)
     end
 end
 
---------------------------------------------------------------------------------
--- Class Derivation
---------------------------------------------------------------------------------
-
----Derives a new class from the current class.
----Supports abstract classes and required method contracts.
 function Object:derive(name, opts)
     opts = opts or {}
     local parent = self
@@ -65,35 +39,40 @@ function Object:derive(name, opts)
         __name = name,
         __parent = parent,
         __abstract = opts.abstract or false,
-        __requires = {}
+        __requires = {},
+        __ancestory = { [name] = true }
     }
-    -- Inherit required contracts
+    if opts.requires then
+        for _, v in pairs(opts.requires) do class.__requires[v] = true end
+    end
     if parent.__requires then
-        for k, v in pairs(parent.__requires) do
-            class.__requires[k] = v
-        end
+        for k, v in pairs(parent.__requires) do class.__requires[k] = v end
+    end
+    if parent.__ancestory then
+        for k, v in pairs(parent.__ancestory) do class.__ancestory[k] = v end
     end
     propagate_metamethods(class, parent)
     setmetatable(class, { __index = parent })
     return class
 end
 
---------------------------------------------------------------------------------
--- Class Finalisation / Contract Enforcement
---------------------------------------------------------------------------------
+local function is_class_table(t)
+    return type(t) == "table" and rawget(t, "__parent") ~= nil
+end
 
----Validates that a concrete class:
----  • Implements all required methods
----  • Defines a public constructor (__public)
+function Object:is(other)
+    if other == nil then return false end
+    local a = self
+    if not is_class_table(a) then a = getmetatable(a) end
+    if not a then return false end
+    return a.__ancestory[other] == true
+end
+
 function Object:finalise()
-    if self.__abstract then
-        return
-    end
+    if self.__abstract then return end
     local missing = {}
     for method, _ in pairs(self.__requires or {}) do
-        if self[method] == nil then
-            table.insert(missing, method)
-        end
+        if self[method] == nil then table.insert(missing, method) end
     end
     if #missing > 0 then
         Rkr.Error.Type("Concrete class '%s' missing required methods: %s",
@@ -104,13 +83,6 @@ function Object:finalise()
     end
 end
 
---------------------------------------------------------------------------------
--- Metamethods
---------------------------------------------------------------------------------
-
----Default string representation for objects.
-function Object:__tostring()
-    return ("<%s object>"):format(self.__name)
-end
+function Object:__tostring() return ("<%s object>"):format(self.__name) end
 
 return Object
