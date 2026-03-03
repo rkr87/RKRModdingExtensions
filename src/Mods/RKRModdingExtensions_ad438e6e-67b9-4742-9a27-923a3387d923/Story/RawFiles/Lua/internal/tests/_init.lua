@@ -1,2 +1,3 @@
-Ext.Require("Internal/Tests/List.lua")
-Ext.Require("Internal/Tests/Dict.lua")
+Rkr.Require("Internal/Tests/list.lua")
+Rkr.Require("Internal/Tests/dict.lua")
+Rkr.Require("Internal/Tests/tuple.lua")

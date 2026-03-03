@@ -1,2 +1,2 @@
-Ext.Require("external/probability_pool.lua")
-Ext.Require("external/timer.lua")
+Rkr.Require("external/probability_pool.lua")
+Rkr.Require("external/timer.lua")

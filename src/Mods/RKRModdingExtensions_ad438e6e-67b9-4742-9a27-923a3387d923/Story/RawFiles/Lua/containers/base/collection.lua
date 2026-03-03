@@ -14,7 +14,7 @@
 --------------------------------------------------------------------------------
 
 ---@type Object
-local Object = Ext.Require("containers/base/object.lua")
+local Object = Rkr.Require("containers/base/object.lua")
 
 ---@class Collection<K, V>: Object
 ---@field __len fun(self: Collection<K, V>): integer

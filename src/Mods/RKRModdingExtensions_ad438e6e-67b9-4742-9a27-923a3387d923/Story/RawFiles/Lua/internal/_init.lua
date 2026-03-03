@@ -15,4 +15,4 @@ Rkr.Test.initialise(
     RkrModdingExtensions.ModName,
     RkrModdingExtensions.Settings.log_level
 )
-Ext.Require("internal/tests/_init.lua")
+Rkr.Require("internal/tests/_init.lua")

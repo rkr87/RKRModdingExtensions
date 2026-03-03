@@ -7,7 +7,7 @@ if Rkr.Error == nil then Rkr.Error = {} end
 --   of core functionility is dependent on it existing.
 if RkrModdingExtensions == nil then RkrModdingExtensions = {} end
 
-
-Ext.Require("core/errors.lua")
+Ext.Require("core/require.lua")
+Rkr.Require("core/errors.lua")
 --TODO make this internal/local
-Ext.Require("core/make_callable.lua")
+Rkr.Require("core/make_callable.lua")

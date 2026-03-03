@@ -20,7 +20,7 @@
 --------------------------------------------------------------------------------
 
 ---@type Collection
-local Collection = Ext.Require("containers/base/collection.lua")
+local Collection = Rkr.Require("containers/base/collection.lua")
 
 ---@class Sequence<T, S>: Collection<integer, T>, Object
 ---@field __index_protocol fun(self: Sequence<T>, index: integer): T

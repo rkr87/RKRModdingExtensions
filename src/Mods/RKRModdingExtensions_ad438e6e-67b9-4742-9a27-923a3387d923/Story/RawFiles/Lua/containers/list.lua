@@ -11,7 +11,7 @@
 --------------------------------------------------------------------------------
 
 ---@type MutableSequence
-local MutableSequence = Ext.Require("containers/base/mutable_sequence.lua")
+local MutableSequence = Rkr.Require("containers/base/mutable_sequence.lua")
 
 ---@class list<T>: MutableSequence<T>, Object
 ---@field private _data table<integer, T>

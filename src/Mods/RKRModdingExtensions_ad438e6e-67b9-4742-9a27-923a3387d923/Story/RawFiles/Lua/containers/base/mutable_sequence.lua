@@ -24,7 +24,7 @@
 --   • clear
 --------------------------------------------------------------------------------
 ---@type Sequence
-local Sequence = Ext.Require("containers/base/sequence.lua")
+local Sequence = Rkr.Require("containers/base/sequence.lua")
 
 ---@class MutableSequence<T>: Sequence<T>, Object
 ---@field __set_index_protocol fun(self: MutableSequence<T>, index: integer, value: T)
