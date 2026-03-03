@@ -27,8 +27,12 @@ describe("List", function()
         it("creates list from iterator", function()
             expect(l).deep_equals(List(l()))
                 .and_it.deep_equals(List.new(l()))
-                .and_it.deep_equals(List(l:values()))
-                .and_it.deep_equals(List.new(l:values()))
+        end)
+        it("creates list from tuple", function()
+            expect(l).deep_equals(List(Rkr.Tuple(t)))
+        end)
+        it("creates list from unpacked args", function()
+            expect(l).deep_equals(List(10, 20, 20, 40, 25))
         end)
     end)
 
@@ -51,7 +55,7 @@ describe("List", function()
 
         it("l[i] equals internal sequence position", function()
             for i = 0, #l - 1 do
-                expect(l[i]).equals(l:values()[i + 1])
+                expect(l[i]).equals(l()[i + 1])
             end
         end)
 
@@ -103,7 +107,6 @@ describe("List", function()
         it("returns correct length using # operator", function()
             expect(l).has_length(5)
         end)
-
         it("returns correct length using len()", function()
             expect(l:len()).equals(5)
         end)
@@ -128,6 +131,79 @@ describe("List", function()
             l:append(200)
 
             expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 100, 200 }))
+        end)
+    end)
+
+    describe("extend", function()
+        before_each(function() l = List(t) end)
+
+        it("extends list using another list", function()
+            local other = List({ 1, 2, 3 })
+            l:extend(other)
+            expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 1, 2, 3 }))
+        end)
+
+        it("extends list using array table", function()
+            l:extend({ 7, 8 })
+            expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 7, 8 }))
+        end)
+
+        it("extends list using iterator function", function()
+            local function iter()
+                local values = { 9, 10, 11 }
+                local i = 0
+
+                return function()
+                    i = i + 1
+                    return values[i]
+                end
+            end
+
+            l:extend(iter())
+
+            expect(l).deep_equals(List({ 10, 20, 20, 40, 25, 9, 10, 11 }))
+        end)
+
+        it("extends empty list safely", function()
+            l:extend({})
+            expect(l).deep_equals(List(t))
+
+            l:extend(List())
+            expect(l).deep_equals(List(t))
+        end)
+
+        it("raises TypeError on invalid extend argument", function()
+            ---@diagnostic disable-next-line: param-type-mismatch
+            expect(function() l:extend(123) end).errors("TypeError")
+        end)
+    end)
+
+    describe("extend operator (+)", function()
+        before_each(function() l = List(t) end)
+
+        it("extends list using + operator with another list", function()
+            local result = l + List({ 1, 2, 3 })
+
+            expect(result).deep_equals(List({ 10, 20, 20, 40, 25, 1, 2, 3 }))
+        end)
+
+        it("supports chaining of + operator", function()
+            local result = l + List({ 1 }) + List({ 2, 3 })
+
+            expect(result).deep_equals(List({ 10, 20, 20, 40, 25, 1, 2, 3 }))
+        end)
+
+        it("does not mutate original list when using +", function()
+            local copy = l:copy()
+
+            local result = l + List({ 99 })
+
+            expect(l).deep_equals(copy)
+            expect(result).deep_equals(List({ 10, 20, 20, 40, 25, 99 }))
+        end)
+
+        it("raises TypeError when + operand is invalid", function()
+            expect(function() local _ = l + 123 end).errors("TypeError")
         end)
     end)
 
@@ -278,6 +354,7 @@ describe("List", function()
             expect(l[{ 1, 4 }]).deep_equals(List({ 20, 20, 40 }))
         end)
 
+        local s = l:slice(-4, -1)
         it("supports negative indices", function()
             expect(l:slice(-4, -1)).deep_equals(List({ 20, 20, 40 }))
             expect(l[{ -4, -1 }]).deep_equals(List({ 20, 20, 40 }))
@@ -339,7 +416,33 @@ describe("List", function()
     ------------------------------------------------------------------
 
     describe("iteration", function()
-        it("iter returns index, value pairs", function()
+        it("enumerate returns index, value pairs", function()
+            local i_l = List()
+            local v_l = List()
+            for i, v in l:enumerate() do
+                i_l:append(i)
+                v_l:append(v)
+            end
+            expect(i_l).deep_equals(List({ 0, 1, 2, 3, 4 }))
+            expect(v_l).deep_equals(List(t))
+        end)
+        it("enumerate can unpack sequence values", function()
+            local new_l = List({ List({ 1, 2 }), List({ 3, 4 }), List({ 5, 6 }) })
+            local i_l = List()
+            local x_l = List()
+            local y_l = List()
+            local x, y
+            for i, v in new_l:enumerate() do
+                x, y = v:unpack()
+                i_l:append(i)
+                x_l:append(x)
+                y_l:append(y)
+            end
+            expect(i_l).deep_equals(List({ 0, 1, 2 }))
+            expect(x_l).deep_equals(List({ 1, 3, 5 }))
+            expect(y_l).deep_equals(List({ 2, 4, 6 }))
+        end)
+        it("pairs returns index, value pairs", function()
             local i_l = List()
             local v_l = List()
             for i, v in pairs(l) do
@@ -350,34 +453,20 @@ describe("List", function()
             expect(v_l).deep_equals(List(t))
         end)
 
-        it("items returns an iterator on tuple of index, value pairs", function()
-            expect(List(l:items())).deep_equals(List({
-                List({ 0, 10 }),
-                List({ 1, 20 }),
-                List({ 2, 20 }),
-                List({ 3, 40 }),
-                List({ 4, 25 })
-            }))
-        end)
-
-        it("values returns all values", function()
-            expect(List(l:values())).deep_equals(List(t))
-        end)
-
         it("callable list returns values", function()
             expect(List(l())).deep_equals(List(t))
         end)
 
         it("iterator can be consumed fully", function()
             local values = {}
-            for v in l:values() do table.insert(values, v) end
+            for v in l() do table.insert(values, v) end
             expect(List(values)).deep_equals(List(t))
         end)
     end)
 
     describe("iterator exhaustion", function()
         it("values iterator exhausts cleanly", function()
-            local iter = l:values()
+            local iter = l()
 
             local collected = {}
             for v in iter do
@@ -388,7 +477,7 @@ describe("List", function()
         end)
 
         it("iterator can be partially consumed", function()
-            local iter = l:values()
+            local iter = l()
 
             local first = iter()
             local second = iter()
@@ -407,6 +496,7 @@ describe("List", function()
             local new = l:copy()
             expect(new).deep_equals(List(t))
             expect(rawequal(new, l)).equals(false)
+            expect(new == l).equals(true)
         end)
 
         it("mutations do not affect original after copy", function()
@@ -447,7 +537,7 @@ describe("List", function()
 
             l:sort()
 
-            for v in before:values() do
+            for v in before() do
                 expect(l:count(v)).equals(before:count(v))
             end
         end)
@@ -459,6 +549,7 @@ describe("List", function()
 
     describe("stress mutation path", function()
         it("mixed mutation sequence is stable", function()
+            ---@type list<integer>
             local copy = l:copy()
 
             copy:append(1)
