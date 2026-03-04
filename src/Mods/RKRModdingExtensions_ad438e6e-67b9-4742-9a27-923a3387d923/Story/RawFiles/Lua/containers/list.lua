@@ -63,8 +63,8 @@ function list:pop(index)
 end
 
 function list:remove(value)
-    for i = 0, self._size - 1 do
-        if self._data[i] == value then
+    for i, v in self:enumerate() do
+        if v == value then
             self:pop(i)
             return
         end
@@ -73,7 +73,7 @@ function list:remove(value)
 end
 
 function list:clear()
-    for i = 0, self._size - 1 do self._data[i] = nil end
+    self._data = {}
     self._size = 0
 end
 
