@@ -156,6 +156,13 @@ describe("Tuple", function()
             local b = Tuple(Tuple(1, 2), 3)
             expect(a:__hash()).equals(b:__hash())
         end)
+
+        it("hashing mutable contents throws type error", function()
+            local a = Tuple({ 1, 2 }, { 3, 4 })
+            expect(function() a:__hash() end).errors("TypeError")
+            local b = Tuple(List(1, 2), List(3, 4))
+            expect(function() b:__hash() end).errors("TypeError")
+        end)
     end)
 
     ------------------------------------------------------------------
