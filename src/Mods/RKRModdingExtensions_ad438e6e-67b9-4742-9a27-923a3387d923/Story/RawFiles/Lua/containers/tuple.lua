@@ -1,7 +1,10 @@
 ---@type Sequence
 local Sequence = Rkr.Require("containers/base/sequence.lua")
 
----@class tuple<T>: Sequence<T>, Object
+---@type Hash
+local Hash = Rkr.Require("containers/base/hash.lua")
+
+---@class tuple<T>: Sequence<T>, Object, Hashable
 ---@field private _data table<integer, T>
 ---@field private _size integer
 ---@field private _hash integer
@@ -22,7 +25,7 @@ setmetatable(Tuple, { __call = function(_, ...) return Tuple.new(...) end })
 
 function Tuple.new(...)
     ---@type tuple<T>
-    local new = setmetatable({ _data = {}, _size = 0, _hash = 0 }, tuple)
+    local new = setmetatable({ _data = {}, _size = 0, _hash = -1 }, tuple)
     local args = Sequence.parse_args(...)
     if args == nil then return new end
     local iter = Sequence.get_iterable(args)
@@ -31,7 +34,6 @@ function Tuple.new(...)
         new._data[new._size] = v
         new._size = new._size + 1
     end
-    new._hash = new:__hash()
     return new
 end
 
@@ -47,39 +49,16 @@ tuple.pop        = immutable
 tuple.remove     = immutable
 tuple.clear      = immutable
 
-local FNV_OFFSET = 2166136261
-local FNV_PRIME  = 16777619
-local MOD32      = 2 ^ 32
-
-local function hash_value(v)
-    local t = type(v)
-    if t == "number" then return v % MOD32 end
-    if t == "boolean" then return v and 1 or 0 end
-    if t == "string" then
-        local h = FNV_OFFSET
-        for i = 1, #v do
-            h = (h ~ string.byte(v, i)) * FNV_PRIME % MOD32
-        end
-        return h
-    end
-    if t == "table" then
-        local mt = getmetatable(v)
-        if mt and mt.__hash then return v:__hash() end
-        local s = tostring(v)
-        local hex = s:match("0x[%da-fA-F]+")
-        if hex then return tonumber(hex, 16) or 0 end
-        return 0
-    end
-end
 
 function tuple:__hash()
-    if self._hash ~= 0 then return self._hash end
-    local h = FNV_OFFSET
-    for i = 0, self._size - 1 do
-        local element_hash = hash_value(self._data[i])
-        h = (h ~ element_hash) * FNV_PRIME % MOD32
+    if self._hash ~= -1 then return self._hash end
+    local h = Hash.FNV_OFFSET
+    for v in self() do
+        local element_hash = Hash.hash_value(v)
+        h = Hash.combine_ordered(h, element_hash)
     end
-    h = (h ~ self._size) * FNV_PRIME % MOD32
+    h = Hash.finalise(h, self._size)
+    self._hash = h
     return h
 end
 
